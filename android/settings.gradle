@@ -1,4 +1,1 @@
 rootProject.name = 'flutter_linkme_sdk'
-
-include ':linkmekit'
-project(':linkmekit').projectDir = new File('/Users/tomasradvansky/Documents/RDEV-LIMITED/li-nk.me-android-sdk/linkmekit')
