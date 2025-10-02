@@ -28,6 +28,7 @@ class FlutterLinkmeSdkPlugin :
 
     private var applicationContext: Context? = null
     private var activity: Activity? = null
+    private var activityBinding: ActivityPluginBinding? = null
     private var eventSink: EventChannel.EventSink? = null
     private var unsubscribe: (() -> Unit)? = null
 
@@ -140,21 +141,25 @@ class FlutterLinkmeSdkPlugin :
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+        activityBinding = binding
         activity = binding.activity
         binding.addOnNewIntentListener(this)
         activity?.intent?.let { LinkMe.shared.handleIntent(it) }
     }
 
-    override fun onDetachedFromActivityForConfigChanges(binding: ActivityPluginBinding) {
-        onDetachedFromActivity(binding)
+    override fun onDetachedFromActivityForConfigChanges() {
+        activityBinding?.removeOnNewIntentListener(this)
+        activityBinding = null
+        activity = null
     }
 
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
         onAttachedToActivity(binding)
     }
 
-    override fun onDetachedFromActivity(binding: ActivityPluginBinding) {
-        binding.removeOnNewIntentListener(this)
+    override fun onDetachedFromActivity() {
+        activityBinding?.removeOnNewIntentListener(this)
+        activityBinding = null
         activity = null
     }
 
