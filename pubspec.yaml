@@ -39,8 +39,10 @@ flutter:
         pluginClass: FlutterLinkmeSdkPlugin
       ios:
         pluginClass: FlutterLinkmeSdkPlugin
+        swiftPackageManager: true
       macos:
         pluginClass: FlutterLinkmeSdkPlugin
+        swiftPackageManager: true
 
   # To add assets to your plugin package, add an assets section, like this:
   # assets:
