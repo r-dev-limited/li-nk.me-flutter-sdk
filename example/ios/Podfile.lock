@@ -1,0 +1,34 @@
+PODS:
+  - Flutter (1.0.0)
+  - flutter_linkme_sdk (0.0.1):
+    - Flutter
+    - LinkMeKit
+  - integration_test (0.0.1):
+    - Flutter
+  - LinkMeKit (0.1.0)
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - flutter_linkme_sdk (from `.symlinks/plugins/flutter_linkme_sdk/ios`)
+  - integration_test (from `.symlinks/plugins/integration_test/ios`)
+  - LinkMeKit (from `../../../iOS/LinkMeKit`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  flutter_linkme_sdk:
+    :path: ".symlinks/plugins/flutter_linkme_sdk/ios"
+  integration_test:
+    :path: ".symlinks/plugins/integration_test/ios"
+  LinkMeKit:
+    :path: "../../../iOS/LinkMeKit"
+
+SPEC CHECKSUMS:
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  flutter_linkme_sdk: d90e99161f6d7eb62dc7c83ca3676527586cb115
+  integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e
+  LinkMeKit: fe1d608e838ce8020e06c00518f88d2dda2e6246
+
+PODFILE CHECKSUM: 503aaa4bff44f2ca9f61e0ff9941ab7d144ab2c6
+
+COCOAPODS: 1.16.2

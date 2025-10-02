@@ -32,8 +32,8 @@ target 'Runner' do
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
   
-  # Add LinkMeKit dependency
-  pod 'LinkMeKit', :git => 'https://github.com/r-dev-limited/li-nk.me-ios-sdk.git', :tag => 'v0.1.0'
+  # Add LinkMeKit dependency for the Flutter plugin
+  pod 'LinkMeKit', :path => '../../../iOS/LinkMeKit'
   
   target 'RunnerTests' do
     inherit! :search_paths
