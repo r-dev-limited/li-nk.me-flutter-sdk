@@ -13,8 +13,7 @@ A Flutter plugin that wraps the LinkMe iOS/Android SDKs.
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Your Company' => 'email@example.com' }
   s.source           = { :path => '.' }
-  s.source_files = 'Classes/**/*', '/Users/tomasradvansky/Documents/RDEV-LIMITED/li-nk.me-ios-sdk/LinkMeKit/Sources/LinkMeKit/**/*.{swift}'
-  s.exclude_files = 'Classes/LinkMeKit.swift'
+  s.source_files     = 'Classes/**/*'
   s.dependency 'Flutter'
   s.platform = :ios, '14.0'
 
