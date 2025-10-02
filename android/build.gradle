@@ -18,6 +18,7 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        maven { url 'https://jitpack.io' }
     }
 }
 
@@ -52,5 +53,5 @@ android {
 }
 
 dependencies {
-    implementation(project(":linkmekit"))
+    implementation("com.github.r-dev-limited:li-nk.me-android-sdk:0.1.0")
 }
