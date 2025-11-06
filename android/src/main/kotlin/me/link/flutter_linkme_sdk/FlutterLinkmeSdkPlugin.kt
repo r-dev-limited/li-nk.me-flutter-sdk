@@ -91,11 +91,7 @@ class FlutterLinkmeSdkPlugin :
             return
         }
         val args = call.arguments as? Map<*, *>
-        val baseUrl = args?.get("baseUrl") as? String
-        if (baseUrl.isNullOrBlank()) {
-            result.error("invalid_args", "baseUrl is required", null)
-            return
-        }
+        val baseUrl = args?.get("baseUrl") as? String ?: "https://li-nk.me"
         val config = LinkMe.Config(
             baseUrl = baseUrl,
             appId = args["appId"] as? String,

@@ -7,8 +7,10 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
   private var unsubscribe: (() -> Void)?
 
   public static func register(with registrar: FlutterPluginRegistrar) {
-    let methodChannel = FlutterMethodChannel(name: "flutter_linkme_sdk", binaryMessenger: registrar.messenger)
-    let eventChannel = FlutterEventChannel(name: "flutter_linkme_sdk/events", binaryMessenger: registrar.messenger)
+    let methodChannel = FlutterMethodChannel(
+      name: "flutter_linkme_sdk", binaryMessenger: registrar.messenger)
+    let eventChannel = FlutterEventChannel(
+      name: "flutter_linkme_sdk/events", binaryMessenger: registrar.messenger)
     let instance = FlutterLinkmeSdkPlugin()
     registrar.addMethodCallDelegate(instance, channel: methodChannel)
     eventChannel.setStreamHandler(instance)
@@ -23,12 +25,13 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "configure":
-      guard
-        let args = call.arguments as? [String: Any],
-        let baseUrlString = args["baseUrl"] as? String,
-        let baseUrl = URL(string: baseUrlString)
-      else {
-        result(FlutterError(code: "invalid_args", message: "baseUrl is required", details: nil))
+      guard let args = call.arguments as? [String: Any] else {
+        result(FlutterError(code: "invalid_args", message: "Invalid arguments", details: nil))
+        return
+      }
+      let baseUrlString = args["baseUrl"] as? String ?? "https://li-nk.me"
+      guard let baseUrl = URL(string: baseUrlString) else {
+        result(FlutterError(code: "invalid_args", message: "Invalid baseUrl", details: nil))
         return
       }
       let config = LinkMe.Config(
@@ -62,7 +65,7 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
       LinkMe.shared.setUserId(userId)
       result(nil)
     case "setAdvertisingConsent":
-      let granted = (call.arguments as? [String: Any])? ["granted"] as? Bool ?? false
+      let granted = (call.arguments as? [String: Any])?["granted"] as? Bool ?? false
       LinkMe.shared.setAdvertisingConsent(granted)
       result(nil)
     case "track":
@@ -85,7 +88,9 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
     }
   }
 
-  public func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+  public func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink)
+    -> FlutterError?
+  {
     eventSink = events
     unsubscribe = LinkMe.shared.addListener { [weak self] payload in
       self?.emit(payload)
