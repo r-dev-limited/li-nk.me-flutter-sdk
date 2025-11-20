@@ -33,9 +33,9 @@ class _MyAppState extends State<MyApp> {
   Future<void> _bootstrap() async {
     await _linkMe.configure(
       const LinkMeConfig(
-        baseUrl: 'https://0jk2u2h9.li-nk.me',
-        appId: '0jk2u2h9',
-        appKey: 'ak_CgJwMBftYHC_7_WU8i-zIQb4a3OXZ4yqazp87iF2uus',
+        baseUrl: 'https://e0qcsxfc.li-nk.me',
+        appId: 'e0qcsxfc',
+        appKey: 'ak_nMqCl4QwFSVvjC5VrrAvTH0ziWH06WLhua6EtCvFO6o',
       ),
     );
     final initial = await _linkMe.getInitialLink();
