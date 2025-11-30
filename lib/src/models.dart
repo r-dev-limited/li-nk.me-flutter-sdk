@@ -3,6 +3,7 @@ class LinkMeConfig {
     this.baseUrl,
     this.appId,
     this.appKey,
+    @Deprecated('Pasteboard is now controlled from the Portal. This parameter is ignored.')
     this.enablePasteboard = false,
     this.sendDeviceInfo = true,
     this.includeVendorId = true,
@@ -12,6 +13,8 @@ class LinkMeConfig {
   final String? baseUrl;
   final String? appId;
   final String? appKey;
+  /// @deprecated Pasteboard is now controlled from the Portal (App Settings → iOS).
+  /// The SDK automatically checks pasteboard on iOS. This parameter is ignored.
   final bool enablePasteboard;
   final bool sendDeviceInfo;
   final bool includeVendorId;

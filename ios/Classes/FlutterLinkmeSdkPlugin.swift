@@ -35,11 +35,13 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
         result(FlutterError(code: "invalid_args", message: "Invalid baseUrl", details: nil))
         return
       }
+      // Note: enablePasteboard is now controlled from the Portal (deprecated in SDK config)
+      // The native iOS SDK automatically checks pasteboard on claimDeferredIfAvailable
       let config = LinkMe.Config(
         baseUrl: baseUrl,
         appId: args["appId"] as? String,
         appKey: args["appKey"] as? String,
-        enablePasteboard: args["enablePasteboard"] as? Bool ?? false,
+        enablePasteboard: false, // Ignored - pasteboard is now portal-controlled
         sendDeviceInfo: args["sendDeviceInfo"] as? Bool ?? true,
         includeVendorId: args["includeVendorId"] as? Bool ?? true,
         includeAdvertisingId: args["includeAdvertisingId"] as? Bool ?? false
