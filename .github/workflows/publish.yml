@@ -1,0 +1,97 @@
+name: Publish Flutter SDK
+
+on:
+  push:
+    tags:
+      - "flutter-v*"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch or tag to publish (e.g., flutter-v0.1.0)"
+        required: true
+        default: main
+      version:
+        description: "Version declared in pubspec.yaml (e.g., 0.1.0)"
+        required: true
+      dry_run:
+        description: "Run flutter pub publish --dry-run only"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_CHANNEL: stable
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdks/flutter
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.ref }}
+
+      - name: Read pubspec version
+        id: pubspec
+        run: |
+          VERSION=$(grep -E '^version:' pubspec.yaml | head -1 | awk '{print $2}')
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Determine requested version
+        id: requested
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "value=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            RAW="${GITHUB_REF_NAME#flutter-v}"
+            echo "value=${RAW}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ensure versions match
+        run: |
+          echo "pubspec version: ${{ steps.pubspec.outputs.value }}"
+          echo "requested version: ${{ steps.requested.outputs.value }}"
+          if [[ "${{ steps.pubspec.outputs.value }}" != "${{ steps.requested.outputs.value }}" ]]; then
+            echo "Version mismatch between pubspec.yaml and requested release." >&2
+            exit 1
+          fi
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Flutter analyze
+        run: flutter analyze
+
+      - name: Flutter test
+        run: flutter test
+
+      - name: Flutter publish dry-run
+        run: flutter pub publish --dry-run
+
+      - name: Configure pub credentials
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == 'false' }}
+        run: |
+          if [[ -z "${{ secrets.PUB_CREDENTIALS_JSON }}" ]]; then
+            echo "PUB_CREDENTIALS_JSON secret is not configured." >&2
+            exit 1
+          fi
+          mkdir -p ~/.config/dart
+          cat <<'JSON' > ~/.config/dart/pub-credentials.json
+${{ secrets.PUB_CREDENTIALS_JSON }}
+JSON
+
+      - name: Publish to pub.dev
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == 'false' }}
+        run: flutter pub publish --force
+
