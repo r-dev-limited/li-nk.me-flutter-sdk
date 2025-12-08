@@ -71,4 +71,13 @@ class MethodChannelFlutterLinkmeSdk extends FlutterLinkmeSdkPlatform {
   Future<void> setReady() {
     return _methodChannel.invokeMethod<void>('setReady');
   }
+
+  @override
+  Future<int?> debugVisitUrl(String url, {Map<String, String>? headers}) {
+    final args = <String, dynamic>{'url': url};
+    if (headers != null && headers.isNotEmpty) {
+      args['headers'] = headers;
+    }
+    return _methodChannel.invokeMethod<int>('debugVisitUrl', args);
+  }
 }

@@ -22,6 +22,8 @@ void main() {
             return null;
           case 'getInitialLink':
             return <String, dynamic>{'path': '/foo'};
+          case 'debugVisitUrl':
+            return 302;
           default:
             return null;
         }
@@ -44,5 +46,18 @@ void main() {
   test('getInitialLink parses response', () async {
     final payload = await platform.getInitialLink();
     expect(payload?.path, '/foo');
+  });
+
+  test('debugVisitUrl forwards args and returns status', () async {
+    final status = await platform.debugVisitUrl(
+      'https://example.com/path',
+      headers: const {'Host': 'demo.test'},
+    );
+    expect(status, 302);
+    expect(lastCall?.method, 'debugVisitUrl');
+    expect(lastCall?.arguments, {
+      'url': 'https://example.com/path',
+      'headers': {'Host': 'demo.test'}
+    });
   });
 }

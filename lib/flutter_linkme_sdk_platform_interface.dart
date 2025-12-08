@@ -54,4 +54,8 @@ abstract class FlutterLinkmeSdkPlatform extends PlatformInterface {
   Future<void> setReady() {
     throw UnimplementedError('setReady() has not been implemented.');
   }
+
+  Future<int?> debugVisitUrl(String url, {Map<String, String>? headers}) {
+    throw UnimplementedError('debugVisitUrl() has not been implemented.');
+  }
 }

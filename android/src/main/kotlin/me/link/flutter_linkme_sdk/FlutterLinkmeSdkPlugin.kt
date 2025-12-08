@@ -12,6 +12,8 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.PluginRegistry
+import java.net.HttpURLConnection
+import java.net.URL
 import me.link.sdk.LinkMe
 import me.link.sdk.LinkPayload
 
@@ -80,6 +82,7 @@ class FlutterLinkmeSdkPlugin :
                 // Android processes links immediately after configure.
                 result.success(null)
             }
+            "debugVisitUrl" -> handleDebugVisit(call, result)
             else -> result.notImplemented()
         }
     }
@@ -100,6 +103,7 @@ class FlutterLinkmeSdkPlugin :
             sendDeviceInfo = args["sendDeviceInfo"] as? Boolean ?: true,
             includeVendorId = args["includeVendorId"] as? Boolean ?: true,
             includeAdvertisingId = args["includeAdvertisingId"] as? Boolean ?: false,
+            debug = args["debug"] as? Boolean ?: false,
         )
         LinkMe.shared.configure(ctx, config)
         activity?.intent?.let { LinkMe.shared.handleIntent(it) }
@@ -121,6 +125,34 @@ class FlutterLinkmeSdkPlugin :
         LinkMe.shared.claimDeferredIfAvailable(ctx) { payload ->
             mainHandler.post { result.success(payload?.toMap()) }
         }
+    }
+
+    private fun handleDebugVisit(call: MethodCall, result: MethodChannel.Result) {
+        val url = call.argument<String>("url")
+        if (url.isNullOrBlank()) {
+            result.error("invalid_args", "url is required", null)
+            return
+        }
+        @Suppress("UNCHECKED_CAST")
+        val headers = call.argument<Map<String, String>>("headers") ?: emptyMap()
+        Thread {
+            try {
+                val conn = (URL(url).openConnection() as HttpURLConnection)
+                conn.requestMethod = "GET"
+                conn.instanceFollowRedirects = false
+                conn.connectTimeout = 5000
+                conn.readTimeout = 5000
+                for ((key, value) in headers) {
+                    conn.setRequestProperty(key, value)
+                }
+                val status = conn.responseCode
+                try { conn.inputStream?.close() } catch (_: Throwable) {}
+                try { conn.errorStream?.close() } catch (_: Throwable) {}
+                mainHandler.post { result.success(status) }
+            } catch (t: Throwable) {
+                mainHandler.post { result.error("debug_visit_failed", t.message, null) }
+            }
+        }.start()
     }
 
     override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {

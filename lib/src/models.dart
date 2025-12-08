@@ -8,6 +8,7 @@ class LinkMeConfig {
     this.sendDeviceInfo = true,
     this.includeVendorId = true,
     this.includeAdvertisingId = false,
+    this.debug = false,
   });
 
   final String? baseUrl;
@@ -19,6 +20,7 @@ class LinkMeConfig {
   final bool sendDeviceInfo;
   final bool includeVendorId;
   final bool includeAdvertisingId;
+  final bool debug;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     'baseUrl': baseUrl ?? 'https://li-nk.me',
@@ -28,6 +30,7 @@ class LinkMeConfig {
     'sendDeviceInfo': sendDeviceInfo,
     'includeVendorId': includeVendorId,
     'includeAdvertisingId': includeAdvertisingId,
+    'debug': debug,
   };
 
   LinkMeConfig copyWith({
@@ -38,6 +41,7 @@ class LinkMeConfig {
     bool? sendDeviceInfo,
     bool? includeVendorId,
     bool? includeAdvertisingId,
+    bool? debug,
   }) {
     return LinkMeConfig(
       baseUrl: baseUrl ?? this.baseUrl,
@@ -47,6 +51,7 @@ class LinkMeConfig {
       sendDeviceInfo: sendDeviceInfo ?? this.sendDeviceInfo,
       includeVendorId: includeVendorId ?? this.includeVendorId,
       includeAdvertisingId: includeAdvertisingId ?? this.includeAdvertisingId,
+      debug: debug ?? this.debug,
     );
   }
 
@@ -59,6 +64,7 @@ class LinkMeConfig {
       sendDeviceInfo: (json['sendDeviceInfo'] as bool?) ?? true,
       includeVendorId: (json['includeVendorId'] as bool?) ?? true,
       includeAdvertisingId: (json['includeAdvertisingId'] as bool?) ?? false,
+      debug: (json['debug'] as bool?) ?? false,
     );
   }
 }

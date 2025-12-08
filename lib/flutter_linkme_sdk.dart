@@ -40,6 +40,10 @@ class LinkMe {
   Future<void> setReady() {
     return _platform.setReady();
   }
+
+  Future<int?> debugVisitUrl(String url, {Map<String, String>? headers}) {
+    return _platform.debugVisitUrl(url, headers: headers);
+  }
 }
 
 /// Instance-based client for DI/testing, mirroring Node SDK style
@@ -77,5 +81,9 @@ class LinkMeClient {
 
   Future<void> setReady() {
     return _platform.setReady();
+  }
+
+  Future<int?> debugVisitUrl(String url, {Map<String, String>? headers}) {
+    return _platform.debugVisitUrl(url, headers: headers);
   }
 }

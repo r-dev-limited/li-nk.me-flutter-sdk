@@ -41,7 +41,8 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
         enablePasteboard: args["enablePasteboard"] as? Bool ?? false,
         sendDeviceInfo: args["sendDeviceInfo"] as? Bool ?? true,
         includeVendorId: args["includeVendorId"] as? Bool ?? true,
-        includeAdvertisingId: args["includeAdvertisingId"] as? Bool ?? false
+        includeAdvertisingId: args["includeAdvertisingId"] as? Bool ?? false,
+        debug: args["debug"] as? Bool ?? false
       )
       LinkMe.shared.configure(config: config)
       result(nil)
@@ -83,6 +84,34 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
     case "setReady":
       LinkMe.shared.setReady()
       result(nil)
+    case "debugVisitUrl":
+      guard
+        let args = call.arguments as? [String: Any],
+        let urlString = args["url"] as? String,
+        let url = URL(string: urlString)
+      else {
+        result(
+          FlutterError(code: "invalid_args", message: "url is required", details: nil))
+        return
+      }
+      var request = URLRequest(url: url)
+      request.httpMethod = "GET"
+      request.timeoutInterval = 5
+      if let headers = args["headers"] as? [String: String] {
+        headers.forEach { key, value in
+          request.setValue(value, forHTTPHeaderField: key)
+        }
+      }
+      URLSession.shared.dataTask(with: request) { _, response, error in
+        if let error {
+          result(
+            FlutterError(
+              code: "debug_visit_failed", message: error.localizedDescription, details: nil))
+          return
+        }
+        let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+        result(status)
+      }.resume()
     default:
       result(FlutterMethodNotImplemented)
     }

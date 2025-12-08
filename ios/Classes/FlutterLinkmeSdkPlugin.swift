@@ -44,7 +44,8 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
         enablePasteboard: false, // Ignored - pasteboard is now portal-controlled
         sendDeviceInfo: args["sendDeviceInfo"] as? Bool ?? true,
         includeVendorId: args["includeVendorId"] as? Bool ?? true,
-        includeAdvertisingId: args["includeAdvertisingId"] as? Bool ?? false
+        includeAdvertisingId: args["includeAdvertisingId"] as? Bool ?? false,
+        debug: args["debug"] as? Bool ?? false
       )
       LinkMe.shared.configure(config: config)
       result(nil)
@@ -86,6 +87,42 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
     case "setReady":
       LinkMe.shared.setReady()
       result(nil)
+    case "debugVisitUrl":
+      guard
+        let args = call.arguments as? [String: Any],
+        let urlString = args["url"] as? String,
+        let url = URL(string: urlString)
+      else {
+        result(
+          FlutterError(code: "invalid_args", message: "url is required", details: nil))
+        return
+      }
+      var request = URLRequest(url: url)
+      request.httpMethod = "GET"
+      request.timeoutInterval = 5
+      request.cachePolicy = .reloadIgnoringLocalCacheData
+      if let headers = args["headers"] as? [String: String] {
+        headers.forEach { key, value in
+          request.setValue(value, forHTTPHeaderField: key)
+        }
+      }
+      let session = URLSession(
+        configuration: .default,
+        delegate: RedirectBlocker.shared,
+        delegateQueue: nil
+      )
+      session.dataTask(with: request) { _, response, error in
+        DispatchQueue.main.async {
+          if let error {
+            result(
+              FlutterError(
+                code: "debug_visit_failed", message: error.localizedDescription, details: nil))
+            return
+          }
+          let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+          result(status)
+        }
+      }.resume()
     default:
       result(FlutterMethodNotImplemented)
     }
@@ -142,5 +179,21 @@ extension FlutterLinkmeSdkPlugin {
   ) -> Bool {
     LinkMe.shared.handle(url: url)
     return true
+  }
+}
+
+// Prevent following redirects when performing debugVisitUrl so the original
+// response code (e.g., 302) is surfaced to the Dart side.
+private class RedirectBlocker: NSObject, URLSessionTaskDelegate {
+  static let shared = RedirectBlocker()
+
+  func urlSession(
+    _ session: URLSession,
+    task: URLSessionTask,
+    willPerformHTTPRedirection response: HTTPURLResponse,
+    newRequest request: URLRequest,
+    completionHandler: @escaping (URLRequest?) -> Void
+  ) {
+    completionHandler(nil)
   }
 }

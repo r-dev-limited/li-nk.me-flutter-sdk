@@ -21,6 +21,9 @@ class MockFlutterLinkmeSdkPlatform
   Map<String, dynamic>? lastEventProps;
   String? lastUserId;
   bool? lastConsent;
+  String? lastVisitUrl;
+  Map<String, String>? lastVisitHeaders;
+  int debugVisitResponse = 204;
 
   @override
   Stream<LinkMePayload> get onLink => _events.stream;
@@ -58,6 +61,13 @@ class MockFlutterLinkmeSdkPlatform
     setReadyCalled = true;
   }
 
+  @override
+  Future<int?> debugVisitUrl(String url, {Map<String, String>? headers}) async {
+    lastVisitUrl = url;
+    lastVisitHeaders = headers;
+    return debugVisitResponse;
+  }
+
   void emit(LinkMePayload payload) {
     _events.add(payload);
   }
@@ -86,6 +96,7 @@ void main() {
     await linkMe.setAdvertisingConsent(true);
     await linkMe.track('open', properties: {'foo': 'bar'});
     await linkMe.setReady();
+    await linkMe.debugVisitUrl('https://example.com/hello', headers: {'Host': 'demo.test'});
 
     expect(mockPlatform.configureCalled, isTrue);
     expect(mockPlatform.lastConfig?.baseUrl, config.baseUrl);
@@ -94,6 +105,8 @@ void main() {
     expect(mockPlatform.lastEventName, 'open');
     expect(mockPlatform.lastEventProps, {'foo': 'bar'});
     expect(mockPlatform.setReadyCalled, isTrue);
+    expect(mockPlatform.lastVisitUrl, 'https://example.com/hello');
+    expect(mockPlatform.lastVisitHeaders, {'Host': 'demo.test'});
   });
 
   test('Streams payloads', () async {
