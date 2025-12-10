@@ -1,3 +1,9 @@
+## 0.2.1
+
+* Adds deferred fingerprint testing helpers:
+  * A `debug` flag on `LinkMeConfig` lets the native SDK emit extra instrumentation.
+  * A new `debugVisitUrl` helper simulates a click to seed fingerprinted claims.
+
 ## 0.2.0
 
 * Updated LinkMeKit to `0.2.0` (iOS/macOS) and Android SDK to `0.2.0`.
