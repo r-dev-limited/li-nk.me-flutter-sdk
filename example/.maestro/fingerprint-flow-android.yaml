@@ -1,0 +1,23 @@
+appId: me.link.example
+---
+# Launch the app
+- launchApp
+# Wait for SDK to initialize
+- extendedWaitUntil:
+    visible:
+      text: "Status: Ready"
+    timeout: 30000
+# Verify app is showing
+- assertVisible:
+    text: "LinkMe SDK example"
+# Tap claim deferred button - Android uses fingerprinting only (no pasteboard)
+- tapOn:
+    text: "Claim Deferred"
+# Wait for the link ID to be claimed and displayed (via fingerprint)
+- extendedWaitUntil:
+    visible:
+      text: "Link ID: ${LINK_ID}"
+    timeout: 15000
+# Verify Deferred Link - confirms Fingerprinting worked
+- assertVisible:
+    text: "Link ID: ${LINK_ID}"

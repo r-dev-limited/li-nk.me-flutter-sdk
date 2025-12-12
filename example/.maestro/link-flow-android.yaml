@@ -1,0 +1,23 @@
+appId: me.link.example
+---
+# Launch the app
+- launchApp
+# Wait for SDK to initialize
+- extendedWaitUntil:
+    visible:
+      text: "Status: Ready"
+    timeout: 30000
+# Verify app is showing
+- assertVisible:
+    text: "LinkMe SDK example"
+# Tap claim deferred button - Android has no pasteboard dialog
+- tapOn:
+    text: "Claim Deferred"
+# Wait for the link ID to be claimed and displayed
+- extendedWaitUntil:
+    visible:
+      text: "Link ID: ${LINK_ID}"
+    timeout: 15000
+# Verify Deferred Link
+- assertVisible:
+    text: "Link ID: ${LINK_ID}"

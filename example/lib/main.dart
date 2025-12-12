@@ -31,11 +31,25 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _bootstrap() async {
+    const baseUrl = String.fromEnvironment(
+      'LINKME_BASE_URL',
+      defaultValue: 'https://e0qcsxfc.li-nk.me',
+    );
+    const appId = String.fromEnvironment(
+      'LINKME_APP_ID',
+      defaultValue: 'e0qcsxfc',
+    );
+    const appKey = String.fromEnvironment(
+      'LINKME_APP_KEY',
+      defaultValue: 'ak_nMqCl4QwFSVvjC5VrrAvTH0ziWH06WLhua6EtCvFO6o',
+    );
+
     await _linkMe.configure(
       const LinkMeConfig(
-        baseUrl: 'https://e0qcsxfc.li-nk.me',
-        appId: 'e0qcsxfc',
-        appKey: 'ak_nMqCl4QwFSVvjC5VrrAvTH0ziWH06WLhua6EtCvFO6o',
+        baseUrl: baseUrl,
+        appId: appId,
+        appKey: appKey,
+        debug: true,
       ),
     );
     final initial = await _linkMe.getInitialLink();
@@ -46,6 +60,13 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
+  Future<void> _claimDeferred() async {
+    final payload = await _linkMe.claimDeferredIfAvailable();
+    if (payload != null && mounted) {
+      setState(() => _latest = payload);
+    }
+  }
+
   @override
   void dispose() {
     _subscription?.cancel();
@@ -54,27 +75,50 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+    final displayPayload = _latest ?? _initial;
+
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('LinkMe SDK example'),
+          title: Semantics(
+            identifier: 'home-title',
+            child: const Text('LinkMe SDK example'),
+          ),
         ),
         body: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Status: $_status'),
+              Semantics(
+                identifier: 'home-status',
+                child: Text('Status: $_status'),
+              ),
               const SizedBox(height: 16),
-              _buildPayloadInfo('Initial payload', _initial),
+              Semantics(
+                identifier: 'latest-link-id',
+                child: Text('Link ID: ${displayPayload?.linkId ?? 'none'}'),
+              ),
+              const SizedBox(height: 8),
+              Semantics(
+                identifier: 'latest-payload',
+                child: _buildPayloadInfo('Latest payload', displayPayload),
+              ),
               const SizedBox(height: 16),
-              _buildPayloadInfo('Latest payload', _latest),
+              Semantics(
+                identifier: 'button-claim-deferred',
+                child: ElevatedButton(
+                  onPressed: _claimDeferred,
+                  child: const Text('Claim Deferred'),
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
   }
+
   Widget _buildPayloadInfo(String label, LinkMePayload? payload) {
     if (payload == null) {
       return Text('$label: none', style: const TextStyle(color: Colors.grey));

@@ -1,0 +1,19 @@
+
+appId: com.android.chrome
+---
+- openLink: "http://192.168.0.50:8080/flutter-xutk7"
+- runFlow:
+    when:
+      visible: "Use without an account"
+    commands:
+      - tapOn: "Use without an account"
+- runFlow:
+    when:
+      visible: "No thanks"
+    commands:
+      - tapOn: "No thanks"
+- runFlow:
+    when:
+      visible: "Accept & continue"
+    commands:
+      - tapOn: "Accept & continue"

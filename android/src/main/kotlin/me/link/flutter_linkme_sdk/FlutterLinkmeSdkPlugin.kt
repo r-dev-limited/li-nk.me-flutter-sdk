@@ -95,15 +95,15 @@ class FlutterLinkmeSdkPlugin :
         }
         val args = call.arguments as? Map<*, *>
         val baseUrl = args?.get("baseUrl") as? String ?: "https://li-nk.me"
+        @Suppress("DEPRECATION")
         val config = LinkMe.Config(
             baseUrl = baseUrl,
-            appId = args["appId"] as? String,
-            appKey = args["appKey"] as? String,
-            enablePasteboard = args["enablePasteboard"] as? Boolean ?: false,
-            sendDeviceInfo = args["sendDeviceInfo"] as? Boolean ?: true,
-            includeVendorId = args["includeVendorId"] as? Boolean ?: true,
-            includeAdvertisingId = args["includeAdvertisingId"] as? Boolean ?: false,
-            debug = args["debug"] as? Boolean ?: false,
+            appId = args?.get("appId") as? String,
+            appKey = args?.get("appKey") as? String,
+            enablePasteboard = args?.get("enablePasteboard") as? Boolean ?: false,
+            sendDeviceInfo = args?.get("sendDeviceInfo") as? Boolean ?: true,
+            includeVendorId = args?.get("includeVendorId") as? Boolean ?: true,
+            includeAdvertisingId = args?.get("includeAdvertisingId") as? Boolean ?: false,
         )
         LinkMe.shared.configure(ctx, config)
         activity?.intent?.let { LinkMe.shared.handleIntent(it) }
@@ -122,9 +122,64 @@ class FlutterLinkmeSdkPlugin :
             result.error("no_context", "Plugin not attached to context", null)
             return
         }
+        
+        // Get config for potential fallback (native SDK's InstallReferrer may fail on emulator)
+        val config = try {
+            val configField = LinkMe.shared::class.java.getDeclaredField("config")
+            configField.isAccessible = true
+            configField.get(LinkMe.shared) as? LinkMe.Config
+        } catch (_: Throwable) { null }
+        
         LinkMe.shared.claimDeferredIfAvailable(ctx) { payload ->
-            mainHandler.post { result.success(payload?.toMap()) }
+            if (payload != null) {
+                mainHandler.post { result.success(payload.toMap()) }
+            } else if (config != null) {
+                // Fallback: try direct fingerprint claim (InstallReferrer unavailable)
+                directFingerprintClaim(ctx, config, result)
+            } else {
+                mainHandler.post { result.success(null) }
+            }
         }
+    }
+    
+    private fun directFingerprintClaim(ctx: Context, config: LinkMe.Config, result: MethodChannel.Result) {
+        Thread {
+            try {
+                val url = URL("${config.baseUrl.trimEnd('/')}/api/deferred/claim")
+                val conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json")
+                conn.setRequestProperty("Accept", "application/json")
+                config.appId?.let { conn.setRequestProperty("x-app-id", it) }
+                config.appKey?.let { conn.setRequestProperty("x-api-key", it) }
+                conn.connectTimeout = 10000
+                conn.readTimeout = 10000
+                conn.doOutput = true
+                
+                val body = "{\"bundleId\":\"${ctx.packageName}\",\"platform\":\"android\"}"
+                conn.outputStream.use { it.write(body.toByteArray()) }
+                
+                if (conn.responseCode in 200..299) {
+                    val responseBody = conn.inputStream.bufferedReader().use { it.readText() }
+                    val payloadMap = parseJsonToMap(responseBody)
+                    mainHandler.post { result.success(payloadMap) }
+                } else {
+                    mainHandler.post { result.success(null) }
+                }
+            } catch (_: Throwable) {
+                mainHandler.post { result.success(null) }
+            }
+        }.start()
+    }
+    
+    private fun parseJsonToMap(json: String): Map<String, Any?>? {
+        try {
+            val linkIdMatch = Regex("\"linkId\"\\s*:\\s*\"([^\"]+)\"").find(json)
+            if (linkIdMatch != null) {
+                return mapOf("linkId" to linkIdMatch.groupValues[1])
+            }
+        } catch (_: Throwable) {}
+        return null
     }
 
     private fun handleDebugVisit(call: MethodCall, result: MethodChannel.Result) {

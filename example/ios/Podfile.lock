@@ -5,7 +5,7 @@ PODS:
     - LinkMeKit (~> 0.2.0)
   - integration_test (0.0.1):
     - Flutter
-  - LinkMeKit (0.2.0)
+  - LinkMeKit (0.2.1)
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
@@ -25,9 +25,9 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_linkme_sdk: 3d063f859f49b82d9962875bf8eae5c12225119e
-  integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e
-  LinkMeKit: 9386ba1ccd30711c4ba2e156c81ec43f15c621ec
+  flutter_linkme_sdk: de7feef95facd8234a329a36af3c434374346803
+  integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
+  LinkMeKit: 4652a14502fd98307b2a09476512efe28923f179
 
 PODFILE CHECKSUM: 503aaa4bff44f2ca9f61e0ff9941ab7d144ab2c6
 
