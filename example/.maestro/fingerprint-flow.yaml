@@ -13,16 +13,17 @@ appId: me.link.example
 # Tap claim deferred button - this will trigger the pasteboard dialog
 - tapOn:
     text: "Claim Deferred"
-# Wait for and handle pasteboard permission - Deny Paste to force fingerprint attribution
+# Wait for and handle pasteboard permission (iOS) - Deny Paste to force a non-pasteboard claim
 - extendedWaitUntil:
     visible: "Don’t Allow Paste"
     timeout: 5000
 - tapOn: "Don’t Allow Paste"
-# Wait for the link ID to be claimed and displayed (via fingerprint)
+# Wait for the link ID to be claimed and displayed (fingerprint on iOS; Install Referrer may apply on Android)
 - extendedWaitUntil:
     visible:
       text: "Link ID: ${LINK_ID}"
     timeout: 10000
-# Verify Deferred Link - confirms Fingerprinting worked because Pasteboard was denied
+# Verify Deferred Link - confirms deferred claiming worked with pasteboard denied
 - assertVisible:
     text: "Link ID: ${LINK_ID}"
+

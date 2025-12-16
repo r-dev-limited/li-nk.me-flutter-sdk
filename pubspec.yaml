@@ -1,6 +1,6 @@
 name: flutter_linkme_sdk
 description: "Flutter SDK for LinkMe — short links, custom domains, multi-platform deep linking, and attribution analytics."
-version: 0.2.1
+version: 0.2.3
 homepage: https://li-nk.me/resources/developer/setup/flutter
 repository: https://github.com/r-dev-limited/li-nk.me-flutter-sdk
 issue_tracker: https://github.com/r-dev-limited/li-nk.me-flutter-sdk/issues

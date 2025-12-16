@@ -10,10 +10,10 @@ appId: me.link.example
 # Verify app is showing
 - assertVisible:
     text: "LinkMe SDK example"
-# Tap claim deferred button - this will trigger the pasteboard dialog
+# Tap claim deferred button - on iOS this will trigger the pasteboard dialog
 - tapOn:
     text: "Claim Deferred"
-# Handle pasteboard permission - Allow Paste for clipboard attribution
+# Handle pasteboard permission (iOS) - Allow Paste for clipboard attribution
 - runFlow:
     when:
       visible: "Allow Paste"
@@ -27,3 +27,4 @@ appId: me.link.example
 # Verify Deferred Link
 - assertVisible:
     text: "Link ID: ${LINK_ID}"
+

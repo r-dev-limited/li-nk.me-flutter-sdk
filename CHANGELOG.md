@@ -4,6 +4,14 @@
   * A `debug` flag on `LinkMeConfig` lets the native SDK emit extra instrumentation.
   * A new `debugVisitUrl` helper simulates a click to seed fingerprinted claims.
 
+## 0.2.2
+
+* Updates Android SDK to `0.2.2` (Install Referrer claims use `/api/install-referrer`).
+
+## 0.2.3
+
+* Updates Android SDK to `0.2.3`.
+
 ## 0.2.0
 
 * Updated LinkMeKit to `0.2.0` (iOS/macOS) and Android SDK to `0.2.0`.
