@@ -4,6 +4,10 @@
   * A `debug` flag on `LinkMeConfig` lets the native SDK emit extra instrumentation.
   * A new `debugVisitUrl` helper simulates a click to seed fingerprinted claims.
 
+## 0.2.4
+
+* Updates iOS SDK, React Native SDK, and Android SDK to `0.2.4`.
+
 ## 0.2.2
 
 * Updates Android SDK to `0.2.2` (Install Referrer claims use `/api/install-referrer`).
