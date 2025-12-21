@@ -1,5 +1,5 @@
 group = "me.link"
-version = "0.2.4"
+version = "0.2.5"
 
 buildscript {
     ext.kotlin_version = "2.1.0"
@@ -53,5 +53,5 @@ android {
 }
 
 dependencies {
-    implementation("com.github.r-dev-limited:li-nk.me-android-sdk:0.2.4")
+    implementation("com.github.r-dev-limited:li-nk.me-android-sdk:0.2.5")
 }

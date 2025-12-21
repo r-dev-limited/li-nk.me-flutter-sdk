@@ -8,6 +8,10 @@
 
 * Updates iOS SDK, React Native SDK, and Android SDK to `0.2.4`.
 
+## 0.2.5
+
+* Relaxes pasteboard parsing to accept branded LinkMe domains and structured `linkme:cid=...` tokens.
+
 ## 0.2.2
 
 * Updates Android SDK to `0.2.2` (Install Referrer claims use `/api/install-referrer`).
