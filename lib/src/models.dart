@@ -76,6 +76,8 @@ class LinkMePayload {
     this.params,
     this.utm,
     this.custom,
+    this.url,
+    this.isLinkMe,
   });
 
   final String? linkId;
@@ -83,6 +85,8 @@ class LinkMePayload {
   final Map<String, String>? params;
   final Map<String, String>? utm;
   final Map<String, String>? custom;
+  final String? url;
+  final bool? isLinkMe;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     if (linkId != null) 'linkId': linkId,
@@ -90,6 +94,8 @@ class LinkMePayload {
     if (params != null) 'params': params,
     if (utm != null) 'utm': utm,
     if (custom != null) 'custom': custom,
+    if (url != null) 'url': url,
+    if (isLinkMe != null) 'isLinkMe': isLinkMe,
   };
 
   factory LinkMePayload.fromJson(Map<String, dynamic> json) {
@@ -99,6 +105,8 @@ class LinkMePayload {
       params: _mapOfString(json['params']),
       utm: _mapOfString(json['utm']),
       custom: _mapOfString(json['custom']),
+      url: json['url'] as String?,
+      isLinkMe: json['isLinkMe'] as bool?,
     );
   }
 

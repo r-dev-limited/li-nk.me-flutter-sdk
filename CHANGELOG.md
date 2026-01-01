@@ -1,3 +1,7 @@
+## 0.2.7
+
+* Adds `isLinkMe` and `url` to payloads to distinguish LinkMe-managed links from basic universal links.
+
 ## 0.2.1
 
 * Adds deferred fingerprint testing helpers:

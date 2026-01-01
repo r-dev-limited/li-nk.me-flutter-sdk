@@ -259,5 +259,7 @@ private fun LinkPayload.toMap(): Map<String, Any?> {
     params?.let { map["params"] = it }
     utm?.let { map["utm"] = it }
     custom?.let { map["custom"] = it }
+    url?.let { map["url"] = it }
+    isLinkMe?.let { map["isLinkMe"] = it }
     return map
 }
