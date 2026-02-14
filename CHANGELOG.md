@@ -1,3 +1,8 @@
+## 0.2.8
+
+* Bumps iOS/macOS LinkMeKit dependency to `0.2.8`.
+* Bumps Android SDK dependency to `0.2.8`.
+
 ## 0.2.7
 
 * Adds `isLinkMe` and `url` to payloads to distinguish LinkMe-managed links from basic universal links.

@@ -15,7 +15,7 @@ let package = Package(
   dependencies: [
     .package(
       url: "https://github.com/r-dev-limited/li-nk.me-ios-sdk.git",
-      .upToNextMajor(from: "0.2.0"))
+      .upToNextMajor(from: "0.2.8"))
   ],
   targets: [
     .target(
