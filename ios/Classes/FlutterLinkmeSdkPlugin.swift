@@ -161,8 +161,6 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
     if let params = payload.params { dict["params"] = params }
     if let utm = payload.utm { dict["utm"] = utm }
     if let custom = payload.custom { dict["custom"] = custom }
-    if let url = payload.url { dict["url"] = url }
-    if let isLinkMe = payload.isLinkMe { dict["isLinkMe"] = isLinkMe }
     return dict
   }
 }
