@@ -1,6 +1,6 @@
 name: flutter_linkme_sdk
 description: "Flutter SDK for LinkMe — short links, custom domains, multi-platform deep linking, and attribution analytics."
-version: 0.2.8
+version: 0.2.9
 homepage: https://li-nk.me/resources/developer/setup/flutter
 repository: https://github.com/r-dev-limited/li-nk.me-flutter-sdk
 issue_tracker: https://github.com/r-dev-limited/li-nk.me-flutter-sdk/issues
@@ -18,6 +18,8 @@ environment:
 
 dependencies:
   flutter:
+    sdk: flutter
+  flutter_web_plugins:
     sdk: flutter
   plugin_platform_interface: ^2.0.2
 
@@ -38,3 +40,6 @@ flutter:
       macos:
         pluginClass: FlutterLinkmeSdkPlugin
         swiftPackageManager: true
+      web:
+        pluginClass: FlutterLinkmeSdkWeb
+        fileName: flutter_linkme_sdk_web.dart
