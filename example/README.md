@@ -2,6 +2,24 @@
 
 Demonstrates how to use the flutter_linkme_sdk plugin.
 
+## Deep-link setup in this example
+
+This example includes both HTTPS App Links / Universal Links and a custom scheme:
+
+- Android: `android/app/src/main/AndroidManifest.xml`
+  - HTTPS host intent filter (`android:autoVerify="true"`)
+  - Custom scheme intent filter
+- iOS: `ios/Runner`
+  - Associated Domains entitlement (`Runner.entitlements`)
+  - URL scheme in `Info.plist` (`CFBundleURLSchemes`)
+
+### Override defaults
+
+Android host + scheme can be overridden at build time:
+
+- `LINKME_APP_LINKS_HOST` (default: `e0qcsxfc.li-nk.me`)
+- `LINKME_URL_SCHEME` (default: `me.link.example`)
+
 ## Getting Started
 
 This project is a starting point for a Flutter application.

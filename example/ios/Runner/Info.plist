@@ -16,6 +16,17 @@
 	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>flutter_linkme_sdk_example</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>me.link.example</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>me.link.example</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

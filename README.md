@@ -34,6 +34,27 @@ final initial = await linkme.getInitialLink();
 linkme.onLink.listen((payload) => routeUser(payload));
 ```
 
+## Manual deep-link setup (equivalent to React Native plugin)
+
+If you are comparing to React Native Expo plugin config:
+
+```json
+{
+  "hosts": ["links.yourco.com"],
+  "associatedDomains": ["links.yourco.com"],
+  "schemes": ["yourapp"]
+}
+```
+
+configure Flutter native targets manually as:
+
+- iOS (`Runner` target):
+  - Associated Domains: `applinks:links.yourco.com`
+  - `Info.plist` URL types (`CFBundleURLSchemes`): `yourapp`
+- Android (`android/app/src/main/AndroidManifest.xml`):
+  - HTTPS App Links intent filter using host `links.yourco.com`
+  - Custom scheme intent filter using scheme `yourapp`
+
 ## API
 
 | Method | Description |

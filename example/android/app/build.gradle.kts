@@ -28,6 +28,15 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        val appLinksHost = (project.findProperty("LINKME_APP_LINKS_HOST") as String?)
+            ?: System.getenv("LINKME_APP_LINKS_HOST")
+            ?: "e0qcsxfc.li-nk.me"
+        val urlScheme = (project.findProperty("LINKME_URL_SCHEME") as String?)
+            ?: System.getenv("LINKME_URL_SCHEME")
+            ?: "me.link.example"
+        manifestPlaceholders["LINKME_APP_LINKS_HOST"] = appLinksHost
+        manifestPlaceholders["LINKME_URL_SCHEME"] = urlScheme
     }
 
     buildTypes {
