@@ -26,7 +26,6 @@ import 'package:flutter_linkme_sdk/flutter_linkme_sdk.dart';
 
 final linkme = LinkMe();
 await linkme.configure(const LinkMeConfig(
-  baseUrl: 'https://li-nk.me',
   appId: 'app_123',
   debug: true,
 ));
@@ -53,7 +52,6 @@ linkme.onLink.listen((payload) => routeUser(payload));
 
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
-| `baseUrl` | `String?` | `https://li-nk.me` | Your edge domain. |
 | `appId` | `String?` | — | App identifier. |
 | `appKey` | `String?` | — | Optional read-only key. |
 | `sendDeviceInfo` | `bool` | `true` | Include device metadata. |
