@@ -1,8 +1,8 @@
-## 0.2.10
+## 0.2.11
 
 * Adds Flutter web support with a first-party LinkMe web implementation.
-* Bumps iOS/macOS LinkMeKit dependency to `0.2.10`.
-* Bumps Android SDK dependency to `0.2.10`.
+* Bumps iOS/macOS LinkMeKit dependency to `0.2.11`.
+* Bumps Android SDK dependency to `0.2.11`.
 
 ## 0.2.8
 
