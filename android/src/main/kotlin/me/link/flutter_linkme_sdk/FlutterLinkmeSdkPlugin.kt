@@ -82,6 +82,28 @@ class FlutterLinkmeSdkPlugin :
                 // Android processes links immediately after configure.
                 result.success(null)
             }
+            "openExternalUrl" -> {
+                val url = call.argument<String>("url")
+                if (url.isNullOrBlank()) {
+                    result.error("invalid_args", "url is required", null)
+                    return
+                }
+                val ctx = applicationContext
+                if (ctx == null) {
+                    result.error("no_context", "Plugin not attached to context", null)
+                    return
+                }
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url)).apply {
+                        addCategory(Intent.CATEGORY_BROWSABLE)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                    ctx.startActivity(intent)
+                    result.success(null)
+                } catch (t: Throwable) {
+                    result.error("open_url_failed", t.message, null)
+                }
+            }
             "debugVisitUrl" -> handleDebugVisit(call, result)
             else -> result.notImplemented()
         }

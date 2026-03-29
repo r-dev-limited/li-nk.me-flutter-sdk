@@ -1,8 +1,9 @@
-## 0.2.11
+## 0.2.12
 
 * Adds Flutter web support with a first-party LinkMe web implementation.
-* Bumps iOS/macOS LinkMeKit dependency to `0.2.11`.
-* Bumps Android SDK dependency to `0.2.11`.
+* Bumps iOS/macOS LinkMeKit dependency to `0.2.12`.
+* Bumps Android SDK dependency to `0.2.12`.
+* Ensures force-web payloads (`forceRedirectWeb=true` + `webFallbackUrl`) open the external browser automatically and are not forwarded to app routing callbacks.
 
 ## 0.2.8
 

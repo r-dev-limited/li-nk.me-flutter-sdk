@@ -18,7 +18,12 @@ class MethodChannelFlutterLinkmeSdk extends FlutterLinkmeSdkPlatform {
         .where((dynamic event) => event != null)
         .map<Map<String, dynamic>>((dynamic event) {
       return Map<String, dynamic>.from(event as Map);
-    }).map(LinkMePayload.fromJson);
+    }).map(LinkMePayload.fromJson).asyncExpand((LinkMePayload payload) async* {
+      if (await _maybeHandleForcedWebRedirect(payload)) {
+        return;
+      }
+      yield payload;
+    });
     return _cachedLinkStream!;
   }
 
@@ -32,7 +37,11 @@ class MethodChannelFlutterLinkmeSdk extends FlutterLinkmeSdkPlatform {
     final payload =
         await _methodChannel.invokeMapMethod<String, dynamic>('getInitialLink');
     if (payload == null) return null;
-    return LinkMePayload.fromJson(payload);
+    final parsed = LinkMePayload.fromJson(payload);
+    if (await _maybeHandleForcedWebRedirect(parsed)) {
+      return null;
+    }
+    return parsed;
   }
 
   @override
@@ -40,7 +49,11 @@ class MethodChannelFlutterLinkmeSdk extends FlutterLinkmeSdkPlatform {
     final payload = await _methodChannel
         .invokeMapMethod<String, dynamic>('claimDeferredIfAvailable');
     if (payload == null) return null;
-    return LinkMePayload.fromJson(payload);
+    final parsed = LinkMePayload.fromJson(payload);
+    if (await _maybeHandleForcedWebRedirect(parsed)) {
+      return null;
+    }
+    return parsed;
   }
 
   @override
@@ -79,5 +92,23 @@ class MethodChannelFlutterLinkmeSdk extends FlutterLinkmeSdkPlatform {
       args['headers'] = headers;
     }
     return _methodChannel.invokeMethod<int>('debugVisitUrl', args);
+  }
+
+  Future<bool> _maybeHandleForcedWebRedirect(LinkMePayload payload) async {
+    if (payload.forceRedirectWeb != true) {
+      return false;
+    }
+    final target = (payload.webFallbackUrl ?? '').trim();
+    if (target.isEmpty) {
+      return false;
+    }
+    try {
+      await _methodChannel.invokeMethod<void>('openExternalUrl', <String, dynamic>{
+        'url': target,
+      });
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 }

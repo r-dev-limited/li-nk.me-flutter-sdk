@@ -16,7 +16,7 @@ Or declare it manually:
 
 ```yaml
 dependencies:
-  flutter_linkme_sdk: ^0.2.11
+  flutter_linkme_sdk: ^0.2.12
 ```
 
 ## Basic Usage
@@ -34,6 +34,10 @@ await linkme.setReady();
 final initial = await linkme.getInitialLink();
 linkme.onLink.listen((payload) => routeUser(payload));
 ```
+
+### Forced web redirects
+
+If a payload contains `forceRedirectWeb: true` and a non-empty `webFallbackUrl`, the Flutter SDK opens the external browser automatically and does not deliver that payload to `getInitialLink()`, `claimDeferredIfAvailable()`, or `onLink`.
 
 ## Manual deep-link setup mapping
 

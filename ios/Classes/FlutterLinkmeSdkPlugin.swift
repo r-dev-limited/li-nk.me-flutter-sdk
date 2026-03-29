@@ -126,6 +126,31 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
           result(status)
         }
       }.resume()
+    case "openExternalUrl":
+      guard
+        let args = call.arguments as? [String: Any],
+        let raw = args["url"] as? String,
+        !raw.isEmpty,
+        let url = URL(string: raw)
+      else {
+        result(
+          FlutterError(code: "invalid_args", message: "url is required", details: nil))
+        return
+      }
+      DispatchQueue.main.async {
+        UIApplication.shared.open(url, options: [:]) { success in
+          if success {
+            result(nil)
+          } else {
+            result(
+              FlutterError(
+                code: "open_url_failed",
+                message: "Unable to open external URL",
+                details: raw
+              ))
+          }
+        }
+      }
     default:
       result(FlutterMethodNotImplemented)
     }
