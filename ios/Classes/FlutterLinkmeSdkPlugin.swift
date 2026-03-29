@@ -48,6 +48,9 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
         debug: args["debug"] as? Bool ?? false
       )
       LinkMe.shared.configure(config: config)
+      // Keep Flutter behavior aligned with Android bridge: process links
+      // immediately after configure unless app explicitly re-gates itself.
+      LinkMe.shared.setReady()
       result(nil)
     case "getInitialLink":
       LinkMe.shared.getInitialLink { payload in
@@ -163,6 +166,8 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
     if let custom = payload.custom { dict["custom"] = custom }
     if let url = payload.url { dict["url"] = url }
     if let isLinkMe = payload.isLinkMe { dict["isLinkMe"] = isLinkMe }
+    if let forceRedirectWeb = payload.forceRedirectWeb { dict["forceRedirectWeb"] = forceRedirectWeb }
+    if let webFallbackUrl = payload.webFallbackUrl { dict["webFallbackUrl"] = webFallbackUrl }
     return dict
   }
 }

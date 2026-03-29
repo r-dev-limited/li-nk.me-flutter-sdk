@@ -52,6 +52,7 @@ class _MyAppState extends State<MyApp> {
         debug: true,
       ),
     );
+    await _linkMe.setReady();
     final initial = await _linkMe.getInitialLink();
     if (!mounted) return;
     setState(() {

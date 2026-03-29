@@ -78,6 +78,8 @@ class LinkMePayload {
     this.custom,
     this.url,
     this.isLinkMe,
+    this.forceRedirectWeb,
+    this.webFallbackUrl,
   });
 
   final String? linkId;
@@ -87,6 +89,8 @@ class LinkMePayload {
   final Map<String, String>? custom;
   final String? url;
   final bool? isLinkMe;
+  final bool? forceRedirectWeb;
+  final String? webFallbackUrl;
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     if (linkId != null) 'linkId': linkId,
@@ -96,6 +100,8 @@ class LinkMePayload {
     if (custom != null) 'custom': custom,
     if (url != null) 'url': url,
     if (isLinkMe != null) 'isLinkMe': isLinkMe,
+    if (forceRedirectWeb != null) 'forceRedirectWeb': forceRedirectWeb,
+    if (webFallbackUrl != null) 'webFallbackUrl': webFallbackUrl,
   };
 
   factory LinkMePayload.fromJson(Map<String, dynamic> json) {
@@ -107,6 +113,8 @@ class LinkMePayload {
       custom: _mapOfString(json['custom']),
       url: json['url'] as String?,
       isLinkMe: json['isLinkMe'] as bool?,
+      forceRedirectWeb: json['forceRedirectWeb'] as bool?,
+      webFallbackUrl: json['webFallbackUrl'] as String?,
     );
   }
 

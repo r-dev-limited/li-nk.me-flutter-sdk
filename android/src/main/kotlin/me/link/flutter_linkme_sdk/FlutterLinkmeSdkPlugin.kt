@@ -261,5 +261,7 @@ private fun LinkPayload.toMap(): Map<String, Any?> {
     custom?.let { map["custom"] = it }
     url?.let { map["url"] = it }
     isLinkMe?.let { map["isLinkMe"] = it }
+    forceRedirectWeb?.let { map["forceRedirectWeb"] = it }
+    webFallbackUrl?.let { map["webFallbackUrl"] = it }
     return map
 }

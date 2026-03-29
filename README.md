@@ -29,6 +29,7 @@ await linkme.configure(const LinkMeConfig(
   appId: 'app_123',
   debug: true,
 ));
+await linkme.setReady();
 
 final initial = await linkme.getInitialLink();
 linkme.onLink.listen((payload) => routeUser(payload));
