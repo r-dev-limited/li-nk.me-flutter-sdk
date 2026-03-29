@@ -16,7 +16,7 @@ Or declare it manually:
 
 ```yaml
 dependencies:
-  flutter_linkme_sdk: ^0.2.9
+  flutter_linkme_sdk: ^0.2.10
 ```
 
 ## Basic Usage
