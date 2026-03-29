@@ -46,6 +46,14 @@ Use this config shape for your app setup values:
 }
 ```
 
+What each field does and why it must be set:
+
+- `hosts`: your HTTPS deep-link domain(s), mapped to iOS Associated Domains and Android App Links host filters.
+- `associatedDomains`: iOS universal-link domain allowlist; keep aligned with your HTTPS hosts.
+- `schemes`: fallback custom URL scheme(s) for explicit scheme opens.
+
+Required: if these host/scheme values are not configured in native iOS and Android targets, LinkMe links will not route reliably into your Flutter app.
+
 configure Flutter native targets manually as:
 
 - iOS (`Runner` target):
