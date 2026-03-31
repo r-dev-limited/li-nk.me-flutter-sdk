@@ -1,3 +1,10 @@
+## 0.2.13
+
+* Tightens iOS deferred pasteboard claim parsing to LinkMe hosts/token format only.
+* Clears consumed pasteboard CIDs after successful deferred claim.
+* Bumps iOS/macOS LinkMeKit dependency to `0.2.13`.
+* Bumps Android SDK dependency to `0.2.13`.
+
 ## 0.2.12
 
 * Adds Flutter web support with a first-party LinkMe web implementation.
