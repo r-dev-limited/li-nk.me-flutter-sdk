@@ -1,97 +1,164 @@
 # LinkMe Flutter SDK
 
-Flutter plugin for LinkMe — deep linking and attribution.
+Cross-platform deep linking, deferred deep linking, and attribution for Flutter apps.
 
-- **Main Site**: [li-nk.me](https://li-nk.me)
-- **Documentation**: [Flutter Setup](https://li-nk.me/resources/developer/setup/flutter)
-- **Package**: [pub.dev](https://pub.dev/packages/flutter_linkme_sdk)
+[![pub.dev](https://img.shields.io/pub/v/flutter_linkme_sdk)](https://pub.dev/packages/flutter_linkme_sdk)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-## Installation
+- [Main Site](https://li-nk.me)
+- [Setup Guide](https://help.li-nk.me/hc/link-me/en/developer-setup/flutter-setup-guide)
+- [SDK Reference](https://help.li-nk.me/hc/link-me/en/sdks/flutter-sdk-reference)
+- [Help Center](https://help.li-nk.me/hc/link-me/en)
+
+## Quick start
+
+### 1. Prerequisites
+
+- A LinkMe app configured with your iOS bundle ID and Android package name
+- API keys (`appId` and `appKey`) from **App Settings > API Keys**
+- Flutter 3.22+
+
+### 2. Install
 
 ```bash
 flutter pub add flutter_linkme_sdk
 ```
 
-Or declare it manually:
+Or add manually to `pubspec.yaml`:
 
 ```yaml
 dependencies:
   flutter_linkme_sdk: ^0.2.13
 ```
 
-## Basic Usage
+### 3. Configure native platforms
 
-```dart
-import 'package:flutter_linkme_sdk/flutter_linkme_sdk.dart';
+**iOS** — In Xcode, enable Associated Domains on the `Runner` target:
 
-final linkme = LinkMe();
-await linkme.configure(const LinkMeConfig(
-  appId: 'app_123',
-  debug: true,
-));
-await linkme.setReady();
-
-final initial = await linkme.getInitialLink();
-linkme.onLink.listen((payload) => routeUser(payload));
+```
+applinks:links.yourco.com
 ```
 
-### Forced web redirects
+Add a custom URL scheme in `Info.plist` (`CFBundleURLSchemes`): `yourapp`
 
-If a payload contains `forceRedirectWeb: true` and a non-empty `webFallbackUrl`, the Flutter SDK opens the external browser automatically and does not deliver that payload to `getInitialLink()`, `claimDeferredIfAvailable()`, or `onLink`.
+**Android** — In `android/app/src/main/AndroidManifest.xml`, add intent filters:
 
-## Manual deep-link setup mapping
+```xml
+<!-- HTTPS App Links -->
+<intent-filter android:autoVerify="true">
+  <action android:name="android.intent.action.VIEW" />
+  <category android:name="android.intent.category.DEFAULT" />
+  <category android:name="android.intent.category.BROWSABLE" />
+  <data android:scheme="https" android:host="links.yourco.com" />
+</intent-filter>
 
-Use this config shape for your app setup values:
+<!-- Custom scheme -->
+<intent-filter>
+  <action android:name="android.intent.action.VIEW" />
+  <category android:name="android.intent.category.DEFAULT" />
+  <category android:name="android.intent.category.BROWSABLE" />
+  <data android:scheme="yourapp" />
+</intent-filter>
+```
 
-```json
-{
-  "hosts": ["links.yourco.com"],
-  "associatedDomains": ["links.yourco.com"],
-  "schemes": ["yourapp"]
+### 4. Initialize and handle links
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_linkme_sdk/flutter_linkme_sdk.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await LinkMe.shared.configure(
+    const LinkMeConfig(
+      appId: String.fromEnvironment('LINKME_APP_ID'),
+      appKey: String.fromEnvironment('LINKME_APP_KEY'),
+    ),
+  );
+
+  // Cold-start link
+  final initial = await LinkMe.shared.getInitialLink();
+
+  // Deferred deep link (first install)
+  final deferred = initial ?? await LinkMe.shared.claimDeferredIfAvailable();
+
+  runApp(App(initialPayload: initial, deferredPayload: deferred));
+}
+
+class App extends StatefulWidget {
+  const App({super.key, this.initialPayload, this.deferredPayload});
+  final LinkMePayload? initialPayload;
+  final LinkMePayload? deferredPayload;
+
+  @override
+  State<App> createState() => _AppState();
+}
+
+class _AppState extends State<App> {
+  late final StreamSubscription<LinkMePayload> _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    // Live links while app is running
+    _sub = LinkMe.shared.onLink.listen(routeUser);
+  }
+
+  @override
+  void dispose() {
+    _sub.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(home: HomeScreen());
+  }
+
+  void routeUser(LinkMePayload payload) {
+    // Navigate based on payload.path / payload.params
+  }
 }
 ```
 
-What each field does and why it must be set:
+## Deferred deep linking
 
-- `hosts`: your HTTPS deep-link domain(s), mapped to iOS Associated Domains and Android App Links host filters.
-- `associatedDomains`: iOS universal-link domain allowlist; keep aligned with your HTTPS hosts.
-- `schemes`: fallback custom URL scheme(s) for explicit scheme opens.
+| Platform | Primary | Fallback |
+| --- | --- | --- |
+| iOS | Pasteboard (`cid` token) | Fingerprint (`/api/deferred/claim`) |
+| Android | Play Install Referrer (`/api/install-referrer`) | Fingerprint (`/api/deferred/claim`) |
 
-Required: if these host/scheme values are not configured in native iOS and Android targets, LinkMe links will not route reliably into your Flutter app.
+Enable **Pasteboard for Deferred Links** in App Settings for deterministic iOS attribution.
 
-configure Flutter native targets manually as:
+### Forced web redirects
 
-- iOS (`Runner` target):
-  - Associated Domains: `applinks:links.yourco.com`
-  - `Info.plist` URL types (`CFBundleURLSchemes`): `yourapp`
-- Android (`android/app/src/main/AndroidManifest.xml`):
-  - HTTPS App Links intent filter using host `links.yourco.com`
-  - Custom scheme intent filter using scheme `yourapp`
+If a payload contains `forceRedirectWeb: true` and a non-empty `webFallbackUrl`, the SDK opens the external browser automatically and does not deliver that payload to `getInitialLink()`, `claimDeferredIfAvailable()`, or `onLink`.
 
-## API
+## API reference
 
 | Method | Description |
 | --- | --- |
-| `configure(config)` | Initialize the SDK. |
-| `getInitialLink()` | Get the payload that launched the app. |
-| `onLink` (Stream) | Stream of payloads while the app is running. |
-| `claimDeferredIfAvailable()` | Pasteboard (iOS) / Install Referrer (Android). |
-| `track(event, {properties})` | Send analytics events. |
-| `setUserId(userId)` | Associate a user ID. |
-| `setAdvertisingConsent(granted)` | Toggle Ad ID inclusion. |
-| `setReady()` | Signal readiness to process queued links. |
-| `debugVisitUrl(url, {headers})` | Debug helper for testing link resolution. |
+| `configure(config)` | Initialize the SDK |
+| `getInitialLink()` | Get the payload that launched the app |
+| `onLink` (Stream) | Stream of payloads while the app is running |
+| `claimDeferredIfAvailable()` | Claim deferred deep link on first install |
+| `track(event, {properties})` | Send analytics events |
+| `setUserId(userId)` | Associate a user ID |
+| `setAdvertisingConsent(granted)` | Toggle Ad ID inclusion |
+| `setReady()` | Signal readiness to process queued links |
+| `debugVisitUrl(url, {headers})` | Debug helper for testing link resolution |
 
-### Config fields
+### Config options
 
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
-| `appId` | `String?` | — | App identifier. |
-| `appKey` | `String?` | — | Optional read-only key. |
-| `sendDeviceInfo` | `bool` | `true` | Include device metadata. |
-| `includeVendorId` | `bool` | `true` | Include vendor identifier. |
-| `includeAdvertisingId` | `bool` | `false` | Include Ad ID (after consent). |
-| `debug` | `bool` | `false` | Enable verbose native logs. |
+| `appId` | `String?` | — | App identifier |
+| `appKey` | `String?` | — | Optional read-only key |
+| `sendDeviceInfo` | `bool` | `true` | Include device metadata |
+| `includeVendorId` | `bool` | `true` | Include vendor identifier |
+| `includeAdvertisingId` | `bool` | `false` | Include Ad ID (requires consent) |
+| `debug` | `bool` | `false` | Enable verbose native logs |
 
 ### Instance-based client
 
@@ -102,10 +169,20 @@ await client.configure(const LinkMeConfig(appId: 'app_123'));
 
 Use `LinkMeClient` for dependency injection or test-friendly patterns. It mirrors the `LinkMe` API.
 
-## Docs
+## Example app
 
-- Hosted docs: https://li-nk.me/resources/developer/setup/flutter
-- Android troubleshooting: See [Android Troubleshooting](https://li-nk.me/resources/developer/setup/android#troubleshooting)
+The `example/` directory contains a runnable sample:
+
+```bash
+cd example
+cp .env.example .env  # fill in your keys
+flutter run
+```
+
+## Troubleshooting
+
+- See the [Android Troubleshooting](https://help.li-nk.me/hc/link-me/en/developer-setup/android-setup-guide) guide for App Links verification issues.
+- Enable `debug: true` in `LinkMeConfig` to see native logs for link resolution and deferred claims.
 
 ## License
 
