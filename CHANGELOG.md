@@ -2,6 +2,14 @@
 
 All notable changes to the LinkMe Flutter SDK.
 
+## 0.3.0
+
+- Adds Flutter's standard Swift Package Manager layout for iOS and macOS.
+- Adds the required `FlutterFramework` package dependency for Flutter 3.44+.
+- Pins the native LinkMeKit dependency to iOS SDK 0.2.14.
+- Moves the privacy manifest and native plugin sources into the SwiftPM source targets while retaining CocoaPods support.
+- Raises the minimum Flutter version to 3.44.0 and Dart SDK to 3.12.0.
+
 ## 0.2.13
 
 - Tightens iOS deferred pasteboard claim parsing to LinkMe hosts/token format only.

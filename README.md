@@ -16,7 +16,7 @@ Cross-platform deep linking, deferred deep linking, and attribution for Flutter 
 
 - A LinkMe app configured with your iOS bundle ID and Android package name
 - API keys (`appId` and `appKey`) from **App Settings > API Keys**
-- Flutter 3.22+
+- Flutter 3.44+ (Swift Package Manager is enabled by default)
 
 ### 2. Install
 
@@ -28,12 +28,12 @@ Or add manually to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_linkme_sdk: ^0.2.13
+  flutter_linkme_sdk: ^0.3.0
 ```
 
 ### 3. Configure native platforms
 
-**iOS** — In Xcode, enable Associated Domains on the `Runner` target:
+**iOS** — Set the Runner deployment target to iOS 14 or newer, then enable Associated Domains on the `Runner` target:
 
 ```
 applinks:links.yourco.com
@@ -130,6 +130,13 @@ class _AppState extends State<App> {
 | Android | Play Install Referrer (`/api/install-referrer`) | Fingerprint (`/api/deferred/claim`) |
 
 Enable **Pasteboard for Deferred Links** in App Settings for deterministic iOS attribution.
+
+### Swift Package Manager
+
+Flutter discovers the plugin's Swift packages from `ios/flutter_linkme_sdk/Package.swift` and
+`macos/flutter_linkme_sdk/Package.swift`. Flutter 3.44+ generates the `FlutterFramework`
+package sibling automatically, and the plugin resolves LinkMeKit 0.2.14 from its repository-root
+Swift package. CocoaPods remains available for projects that have not migrated to SwiftPM.
 
 ### Forced web redirects
 
