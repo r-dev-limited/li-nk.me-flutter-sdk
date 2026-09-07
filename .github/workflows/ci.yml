@@ -68,3 +68,13 @@ jobs:
       - name: Build macOS consumer
         run: flutter build macos --no-pub
         working-directory: ${{ env.FLUTTER_CONSUMER_ROOT }}/example
+      - name: Run macOS plugin tests
+        run: >-
+          xcodebuild test
+          -workspace macos/Runner.xcworkspace
+          -scheme Runner
+          -configuration Debug
+          -destination 'platform=macOS'
+          -derivedDataPath $RUNNER_TEMP/flutter-macos-tests
+          CODE_SIGNING_ALLOWED=NO
+        working-directory: ${{ env.FLUTTER_CONSUMER_ROOT }}/example

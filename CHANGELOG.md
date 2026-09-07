@@ -2,6 +2,11 @@
 
 All notable changes to the LinkMe Flutter SDK.
 
+## 0.3.2
+
+- Fixes macOS URL delivery by forwarding the imported `handleOpen(_:)` lifecycle callback to LinkMeKit.
+- Adds a macOS native regression test for empty and handled URL batches.
+
 ## 0.3.1
 
 - Releases the native bridge updates with LinkMeKit 0.2.15 and Android SDK 0.2.14.
