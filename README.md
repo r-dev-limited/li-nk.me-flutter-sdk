@@ -153,11 +153,9 @@ SDK 0.2.15 directly from its Git tag as documented in the [iOS SDK README](https
 
 If a payload contains `forceRedirectWeb: true` and a non-empty `webFallbackUrl`, the SDK opens the external browser automatically and does not deliver that payload to `getInitialLink()`, `claimDeferredIfAvailable()`, or `onLink`.
 
-`setUserId(null)` clears identity on Web, React Native, and the local native
-cores. The Flutter iOS/macOS bridges report `identity_reset_unavailable` while
-they are linked to LinkMeKit 0.2.15, and the Flutter Android bridge reports
-`clear_identity_unsupported` while it is linked to JitPack Android 0.2.14.
-Upgrade the native artifacts before relying on Flutter native logout clearing.
+`setUserId(null)` clears identity on Web, React Native, Android 0.2.14, and
+LinkMeKit 0.2.15 through the Flutter bridges. Keep those native versions aligned
+when relying on Flutter native logout clearing.
 
 ## API reference
 
