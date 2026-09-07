@@ -175,7 +175,7 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
 
   /// Receives URL opens forwarded by the Flutter macOS application delegate.
   ///
-  /// LinkMeKit 0.2.14 only exposes URL entry points on UIKit targets. Keep
+  /// LinkMeKit 0.2.15 only exposes URL entry points on UIKit targets. Keep
   /// the lifecycle hook available on macOS so the plugin remains compatible
   /// with Flutter's delegate protocol, while returning `false` until the
   /// published macOS-native artifact adds URL handling.
