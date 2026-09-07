@@ -73,6 +73,7 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
         result(FlutterError(code: "invalid_args", message: "userId is required (or null to clear)", details: nil))
         return
       }
+      let userId = args["userId"] as? String
       if let userId = args["userId"] as? String,
          userId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
         result(FlutterError(code: "invalid_args", message: "userId must not be blank", details: nil))
