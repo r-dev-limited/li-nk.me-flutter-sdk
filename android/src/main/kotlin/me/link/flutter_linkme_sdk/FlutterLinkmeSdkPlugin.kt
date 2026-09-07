@@ -62,14 +62,7 @@ class FlutterLinkmeSdkPlugin :
                     return
                 }
                 val userId = call.argument<String>("userId")
-                if (userId == null) {
-                    // The currently published Android core (0.2.13) has no nullable
-                    // setter. Keep the bridge binary-compatible until a new artifact
-                    // containing LinkMe.setUserId(String?) is published.
-                    result.error("clear_identity_unsupported", "Update the Android core SDK to clear user identity", null)
-                    return
-                }
-                if (userId.isBlank()) {
+                if (userId != null && userId.isBlank()) {
                     result.error("invalid_args", "userId must not be blank", null)
                     return
                 }
@@ -238,10 +231,8 @@ class FlutterLinkmeSdkPlugin :
 
 private fun LinkPayload.toMap(): Map<String, Any?> {
     val map = mutableMapOf<String, Any?>()
-    // Keep the bridge binary-compatible with the currently published Android
-    // core (0.2.13), then pick up cid/duplicate when a newer core exposes
-    // those fields. Direct property access would make old consumers fail to
-    // compile before they can upgrade the native artifact.
+    // Keep the bridge compatible with older Android cores while forwarding
+    // optional attribution fields when the linked artifact exposes them.
     optionalProperty("cid")?.let { map["cid"] = it }
     linkId?.let { map["linkId"] = it }
     path?.let { map["path"] = it }

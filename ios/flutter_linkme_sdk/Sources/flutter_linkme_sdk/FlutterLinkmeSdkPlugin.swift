@@ -69,15 +69,8 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
         result(FlutterError(code: "invalid_args", message: "userId is required (or null to clear)", details: nil))
         return
       }
-      guard let userId = args["userId"] as? String else {
-        result(FlutterError(
-          code: "identity_reset_unavailable",
-          message: "Clearing user identity requires LinkMeKit 0.2.15 or later",
-          details: nil
-        ))
-        return
-      }
-      if userId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+      if let userId = args["userId"] as? String,
+         userId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
         result(FlutterError(code: "invalid_args", message: "userId must not be blank", details: nil))
         return
       }
@@ -197,9 +190,8 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
   private func dictionary(from payload: LinkPayload?) -> [String: Any]? {
     guard let payload else { return nil }
     var dict: [String: Any] = [:]
-    // LinkMeKit 0.2.14 does not expose the v1 attribution fields yet. Read
-    // them reflectively so the bridge remains source/binary compatible while
-    // forwarding them automatically when a newer native artifact is linked.
+    // Read optional attribution fields reflectively so the bridge remains
+    // source/binary compatible across native artifact versions.
     if let cid: String = payload.optionalField("cid") { dict["cid"] = cid }
     if let linkId = payload.linkId { dict["linkId"] = linkId }
     if let path = payload.path { dict["path"] = path }
