@@ -5,6 +5,7 @@ import LinkMeKit
 public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
   private var eventSink: FlutterEventSink?
   private var unsubscribe: (() -> Void)?
+  private var handledForcedTargets = Set<String>()
 
   public static func register(with registrar: FlutterPluginRegistrar) {
     let methodChannel = FlutterMethodChannel(
@@ -14,6 +15,7 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
     let instance = FlutterLinkmeSdkPlugin()
     registrar.addMethodCallDelegate(instance, channel: methodChannel)
     eventChannel.setStreamHandler(instance)
+    registrar.addApplicationDelegate(instance)
   }
 
   public func detachFromEngine(for registrar: FlutterPluginRegistrar) {
@@ -49,18 +51,32 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
     case "getInitialLink":
       LinkMe.shared.getInitialLink { payload in
         DispatchQueue.main.async {
-          result(self.dictionary(from: payload))
+          if let payload, self.handleForcedWebRedirect(payload) {
+            result(nil)
+          } else {
+            result(self.dictionary(from: payload))
+          }
         }
       }
     case "claimDeferredIfAvailable":
       LinkMe.shared.claimDeferredIfAvailable { payload in
         DispatchQueue.main.async {
-          result(self.dictionary(from: payload))
+          if let payload, self.handleForcedWebRedirect(payload) {
+            result(nil)
+          } else {
+            result(self.dictionary(from: payload))
+          }
         }
       }
     case "setUserId":
-      guard let userId = (call.arguments as? [String: Any])?["userId"] as? String else {
-        result(FlutterError(code: "invalid_args", message: "userId is required", details: nil))
+      guard let args = call.arguments as? [String: Any], args.keys.contains("userId") else {
+        result(FlutterError(code: "invalid_args", message: "userId is required (or null to clear)", details: nil))
+        return
+      }
+      let userId = args["userId"] as? String
+      if let userId = args["userId"] as? String,
+         userId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        result(FlutterError(code: "invalid_args", message: "userId must not be blank", details: nil))
         return
       }
       LinkMe.shared.setUserId(userId)
@@ -142,6 +158,7 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
   public func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink)
     -> FlutterError?
   {
+    unsubscribe?()
     eventSink = events
     unsubscribe = LinkMe.shared.addListener { [weak self] payload in
       self?.emit(payload)
@@ -156,7 +173,24 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
     return nil
   }
 
+  /// Receives URL opens forwarded by the Flutter macOS application delegate.
+  ///
+  /// LinkMeKit 0.2.15 only exposes URL entry points on UIKit targets. Keep
+  /// the lifecycle hook available on macOS so the plugin remains compatible
+  /// with Flutter's delegate protocol, while returning `false` until the
+  /// published macOS-native artifact adds URL handling.
+  public func handleOpen(_ urls: [URL]) -> Bool {
+    #if canImport(UIKit)
+      guard !urls.isEmpty else { return false }
+      urls.forEach { LinkMe.shared.handle(url: $0) }
+      return true
+    #else
+      return false
+    #endif
+  }
+
   private func emit(_ payload: LinkPayload) {
+    if handleForcedWebRedirect(payload) { return }
     DispatchQueue.main.async { [weak self] in
       guard let self else { return }
       let map = self.dictionary(from: payload) ?? [:]
@@ -167,6 +201,9 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
   private func dictionary(from payload: LinkPayload?) -> [String: Any]? {
     guard let payload else { return nil }
     var dict: [String: Any] = [:]
+    // Read optional attribution fields reflectively so the bridge remains
+    // source/binary compatible across native artifact versions.
+    if let cid: String = payload.optionalField("cid") { dict["cid"] = cid }
     if let linkId = payload.linkId { dict["linkId"] = linkId }
     if let path = payload.path { dict["path"] = path }
     if let params = payload.params { dict["params"] = params }
@@ -174,6 +211,26 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
     if let custom = payload.custom { dict["custom"] = custom }
     if let url = payload.url { dict["url"] = url }
     if let isLinkMe = payload.isLinkMe { dict["isLinkMe"] = isLinkMe }
+    if let duplicate: Bool = payload.optionalField("duplicate") { dict["duplicate"] = duplicate }
+    if let forceRedirectWeb = payload.forceRedirectWeb { dict["forceRedirectWeb"] = forceRedirectWeb }
+    if let webFallbackUrl = payload.webFallbackUrl { dict["webFallbackUrl"] = webFallbackUrl }
     return dict
+  }
+
+  private func handleForcedWebRedirect(_ payload: LinkPayload) -> Bool {
+    guard payload.forceRedirectWeb == true,
+          let target = payload.webFallbackUrl?.trimmingCharacters(in: .whitespacesAndNewlines),
+          !target.isEmpty,
+          let url = URL(string: target) else { return false }
+    if handledForcedTargets.contains(target) { return true }
+    let opened = NSWorkspace.shared.open(url)
+    if opened { handledForcedTargets.insert(target) }
+    return opened
+  }
+}
+
+private extension LinkPayload {
+  func optionalField<T>(_ name: String) -> T? {
+    Mirror(reflecting: self).children.first(where: { $0.label == name })?.value as? T
   }
 }

@@ -2,6 +2,17 @@
 
 All notable changes to the LinkMe Flutter SDK.
 
+## 0.3.1
+
+- Releases the native bridge updates with LinkMeKit 0.2.15 and Android SDK 0.2.14.
+- Aligns native forced-web handling so claims open the browser once and are not delivered to app routing.
+- Migrates Flutter Web to `package:web` and supports JavaScript and WebAssembly builds.
+- Allows `setUserId(null)` to clear event identity and removes duplicate Android deferred-claim networking.
+- Adds strict payload parsing for `cid`/`duplicate` fields and rejects empty or non-object native responses.
+- Forwards `cid` and `duplicate` from native payloads; reflection keeps the bridge compatible with older published native cores until their next release.
+- Cleans up the Android event subscription when the Flutter engine detaches, preventing listener leaks across engine lifecycles.
+- Adds a Flutter line-coverage gate (75% minimum) and expands method-channel/config/payload regression tests.
+
 ## 0.3.0
 
 - Adds Flutter's standard Swift Package Manager layout for iOS and macOS.

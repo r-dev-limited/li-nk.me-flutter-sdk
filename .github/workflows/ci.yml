@@ -1,0 +1,70 @@
+name: Flutter SDK CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.4'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter test --coverage
+      - run: dart run tool/check_lcov.dart
+      - run: flutter analyze
+      - run: flutter pub get
+        working-directory: example
+      - run: flutter build web --no-pub
+        working-directory: example
+      - run: flutter build web --wasm --no-pub
+        working-directory: example
+      - run: flutter build apk --debug --no-pub
+        working-directory: example
+
+  native-consumer:
+    name: Clean SwiftPM consumer (iOS and macOS)
+    # LinkMeKit 0.2.15 uses Swift tools 6.2; macos-26 provides Xcode 26.x.
+    runs-on: macos-26
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.4'
+          channel: stable
+          cache: true
+      - name: Stage package-name consumer
+        shell: bash
+        run: |
+          set -euo pipefail
+          consumer_root="$RUNNER_TEMP/flutter-linkme-consumer"
+          mkdir -p "$consumer_root/flutter_linkme_sdk" "$consumer_root/example"
+          rsync -a --delete \
+            --exclude='.git' --exclude='.dart_tool' --exclude='build' \
+            --exclude='coverage' --exclude='example' \
+            ./ "$consumer_root/flutter_linkme_sdk/"
+          rsync -a --delete \
+            --exclude='.git' --exclude='.dart_tool' --exclude='build' \
+            --exclude='ios/Pods' --exclude='ios/Flutter/ephemeral' \
+            --exclude='macos/Pods' --exclude='macos/Flutter/ephemeral' \
+            --exclude='android/.gradle' \
+            example/ "$consumer_root/example/"
+          sed -i '' 's|path: \.\./|path: ../flutter_linkme_sdk|' \
+            "$consumer_root/example/pubspec.yaml"
+          echo "FLUTTER_CONSUMER_ROOT=$consumer_root" >> "$GITHUB_ENV"
+      - name: Resolve clean consumer
+        run: flutter pub get
+        working-directory: ${{ env.FLUTTER_CONSUMER_ROOT }}/example
+      - name: Build iOS simulator consumer
+        run: flutter build ios --simulator --no-codesign --no-pub
+        working-directory: ${{ env.FLUTTER_CONSUMER_ROOT }}/example
+      - name: Build macOS consumer
+        run: flutter build macos --no-pub
+        working-directory: ${{ env.FLUTTER_CONSUMER_ROOT }}/example
