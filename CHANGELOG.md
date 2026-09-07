@@ -2,6 +2,11 @@
 
 All notable changes to the LinkMe Flutter SDK.
 
+## 0.3.3
+
+- Align the iOS CocoaPods podspec with the published plugin version.
+- Update installation documentation for the 0.3.3 release and LinkMeKit 0.2.15.
+
 ## 0.3.2
 
 - Fixes macOS URL delivery by forwarding the imported `handleOpen(_:)` lifecycle callback to LinkMeKit.
