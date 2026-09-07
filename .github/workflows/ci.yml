@@ -30,7 +30,8 @@ jobs:
 
   native-consumer:
     name: Clean SwiftPM consumer (iOS and macOS)
-    runs-on: macos-latest
+    # LinkMeKit 0.2.15 uses Swift tools 6.2; macos-26 provides Xcode 26.x.
+    runs-on: macos-26
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
