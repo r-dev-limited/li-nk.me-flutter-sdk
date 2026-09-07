@@ -173,20 +173,12 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
     return nil
   }
 
-  /// Receives URL opens forwarded by the Flutter macOS application delegate.
-  ///
-  /// LinkMeKit 0.2.15 only exposes URL entry points on UIKit targets. Keep
-  /// the lifecycle hook available on macOS so the plugin remains compatible
-  /// with Flutter's delegate protocol, while returning `false` until the
-  /// published macOS-native artifact adds URL handling.
+  /// Receives URL opens forwarded by Flutter's macOS application delegate.
+  /// Swift imports the `handleOpenURLs:` Objective-C selector as `handleOpen(_:)`.
   public func handleOpen(_ urls: [URL]) -> Bool {
-    #if canImport(UIKit)
-      guard !urls.isEmpty else { return false }
-      urls.forEach { LinkMe.shared.handle(url: $0) }
-      return true
-    #else
-      return false
-    #endif
+    guard !urls.isEmpty else { return false }
+    urls.forEach { LinkMe.shared.handle(url: $0) }
+    return true
   }
 
   private func emit(_ payload: LinkPayload) {

@@ -62,11 +62,9 @@ Add a custom URL scheme in `Info.plist` (`CFBundleURLSchemes`): `yourapp`
 ```
 
 **macOS** — The plugin uses Swift Package Manager and registers Flutter's
-`FlutterAppLifecycleDelegate` hook. LinkMeKit 0.2.15 exposes URL forwarding only
-on UIKit targets, so the macOS hook returns `false` until a macOS-capable native
-artifact is released. Keep the generated Flutter SPM integration enabled for
-the `macos` target and add URL Types/associated domains when that artifact is
-available.
+`FlutterAppLifecycleDelegate` hook. LinkMeKit 0.2.15 handles custom-scheme URLs
+on macOS through `handleOpenURLs(_:)`; keep the generated Flutter SPM
+integration enabled for the `macos` target and configure the app's URL Types.
 
 ### 4. Initialize and handle links
 

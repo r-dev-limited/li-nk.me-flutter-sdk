@@ -30,8 +30,54 @@ jobs:
         working-directory: example
       - name: Validate pub archive
         run: dart pub publish --dry-run
+  native-consumer:
+    name: Verify macOS plugin lifecycle
+    runs-on: macos-26
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          flutter-version: '3.44.4'
+          channel: stable
+          cache: true
+      - name: Stage package-name consumer
+        shell: bash
+        run: |
+          set -euo pipefail
+          consumer_root="$RUNNER_TEMP/flutter-linkme-publish-consumer"
+          mkdir -p "$consumer_root/flutter_linkme_sdk" "$consumer_root/example"
+          rsync -a --delete \
+            --exclude='.git' --exclude='.dart_tool' --exclude='build' \
+            --exclude='coverage' --exclude='example' \
+            ./ "$consumer_root/flutter_linkme_sdk/"
+          rsync -a --delete \
+            --exclude='.git' --exclude='.dart_tool' --exclude='build' \
+            --exclude='ios/Pods' --exclude='ios/Flutter/ephemeral' \
+            --exclude='macos/Pods' --exclude='macos/Flutter/ephemeral' \
+            --exclude='android/.gradle' \
+            example/ "$consumer_root/example/"
+          sed -i '' 's|path: \.\./|path: ../flutter_linkme_sdk|' \
+            "$consumer_root/example/pubspec.yaml"
+          echo "FLUTTER_CONSUMER_ROOT=$consumer_root" >> "$GITHUB_ENV"
+      - name: Resolve clean consumer
+        run: flutter pub get
+        working-directory: ${{ env.FLUTTER_CONSUMER_ROOT }}/example
+      - name: Build macOS consumer
+        run: flutter build macos --no-pub
+        working-directory: ${{ env.FLUTTER_CONSUMER_ROOT }}/example
+      - name: Run macOS plugin tests
+        run: >-
+          xcodebuild test
+          -workspace macos/Runner.xcworkspace
+          -scheme Runner
+          -configuration Debug
+          -destination 'platform=macOS'
+          -derivedDataPath $RUNNER_TEMP/flutter-macos-publish-tests
+          CODE_SIGNING_ALLOWED=NO
+        working-directory: ${{ env.FLUTTER_CONSUMER_ROOT }}/example
   publish:
-    needs: test
+    needs: [test, native-consumer]
     permissions:
       id-token: write
     uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
