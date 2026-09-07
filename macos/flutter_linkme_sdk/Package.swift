@@ -20,7 +20,7 @@ let package = Package(
     .package(name: "FlutterFramework", path: "../FlutterFramework"),
     .package(
       url: "https://github.com/r-dev-limited/li-nk.me-ios-sdk.git",
-      exact: "0.2.15"
+      exact: "0.2.16"
     )
   ],
   targets: [

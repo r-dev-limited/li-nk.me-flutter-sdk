@@ -2,6 +2,10 @@
 
 All notable changes to the LinkMe Flutter SDK.
 
+## 0.3.4
+
+- Updates the iOS and macOS SwiftPM/CocoaPods bridge dependency to LinkMeKit 0.2.16, which includes bounded native request deadlines and transport regression coverage.
+
 ## 0.3.3
 
 - Align the iOS CocoaPods podspec with the published plugin version.
