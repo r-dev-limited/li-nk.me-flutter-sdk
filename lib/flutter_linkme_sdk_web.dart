@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:html' as html;
+import 'package:web/web.dart' as web;
+import 'package:http/http.dart' as http;
 
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 
@@ -19,10 +20,10 @@ class FlutterLinkmeSdkWeb extends FlutterLinkmeSdkPlatform {
   LinkMeConfig _config = const LinkMeConfig();
   LinkMePayload? _lastPayload;
   String? _userId;
-  final Set<String> _seenCids = <String>{};
+  final Map<String, LinkMePayload> _payloadsByCid = <String, LinkMePayload>{};
 
-  StreamSubscription<html.Event>? _popStateSub;
-  StreamSubscription<html.Event>? _hashChangeSub;
+  StreamSubscription<web.Event>? _popStateSub;
+  StreamSubscription<web.Event>? _hashChangeSub;
 
   @override
   Stream<LinkMePayload> get onLink => _linkController.stream;
@@ -30,15 +31,19 @@ class FlutterLinkmeSdkWeb extends FlutterLinkmeSdkPlatform {
   @override
   Future<void> configure(LinkMeConfig config) async {
     _config = config;
+    _lastPayload = null;
+    _payloadsByCid.clear();
     await _popStateSub?.cancel();
     await _hashChangeSub?.cancel();
 
-    _popStateSub = html.window.onPopState.listen((_) {
+    _popStateSub = web.window.onPopState.listen((_) {
       unawaited(_resolveFromCurrentLocation(stripCid: true));
     });
-    _hashChangeSub = html.window.onHashChange.listen((_) {
-      unawaited(_resolveFromCurrentLocation(stripCid: true));
-    });
+    _hashChangeSub = web.EventStreamProviders.hashChangeEvent
+        .forTarget(web.window)
+        .listen((_) {
+          unawaited(_resolveFromCurrentLocation(stripCid: true));
+        });
 
     await _resolveFromCurrentLocation(stripCid: true);
   }
@@ -64,7 +69,9 @@ class FlutterLinkmeSdkWeb extends FlutterLinkmeSdkPlatform {
     if (response == null || response.status < 200 || response.status >= 300) {
       return null;
     }
-    final payload = LinkMePayload.fromJson(response.json);
+    final payload = LinkMePayload.tryFromJson(response.json);
+    if (payload == null) return null;
+    if (_handleForcedWebRedirect(payload)) return null;
     _emit(payload);
     return payload;
   }
@@ -91,11 +98,13 @@ class FlutterLinkmeSdkWeb extends FlutterLinkmeSdkPlatform {
       method: 'POST',
       headers: _buildHeaders(includeContentType: true),
       body: <String, dynamic>{
-        'event': event,
+        'type': event,
         'platform': 'web',
         'timestamp': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        if (_lastPayload?.cid != null) 'cid': _lastPayload!.cid,
+        if (_lastPayload?.linkId != null) 'linkId': _lastPayload!.linkId,
         if (_userId != null && _userId!.isNotEmpty) 'userId': _userId,
-        if (properties != null && properties.isNotEmpty) 'props': properties,
+        if (properties != null) 'detail': jsonEncode(properties),
       },
     );
   }
@@ -107,22 +116,24 @@ class FlutterLinkmeSdkWeb extends FlutterLinkmeSdkPlatform {
 
   @override
   Future<int?> debugVisitUrl(String url, {Map<String, String>? headers}) async {
+    final client = http.Client();
     try {
-      final request = await html.HttpRequest.request(
-        url,
-        method: 'GET',
-        requestHeaders: headers,
-      );
-      return request.status;
+      final request = http.Request('GET', Uri.parse(url))
+        ..followRedirects = false;
+      if (headers != null) request.headers.addAll(headers);
+      final response = await client.send(request);
+      return response.statusCode;
     } catch (_) {
       return null;
+    } finally {
+      client.close();
     }
   }
 
   Future<LinkMePayload?> _resolveFromCurrentLocation({
     required bool stripCid,
   }) async {
-    final href = html.window.location.href;
+    final href = web.window.location.href;
     return _processUrl(href, stripCid: stripCid);
   }
 
@@ -138,15 +149,17 @@ class FlutterLinkmeSdkWeb extends FlutterLinkmeSdkPlatform {
     final extracted = _extractCid(parsed);
     final cid = extracted.cid;
     if (cid != null && cid.isNotEmpty) {
-      if (_seenCids.contains(cid) && _lastPayload != null) {
-        return _lastPayload;
+      final cached = _payloadsByCid[cid];
+      if (cached != null) {
+        return cached;
       }
       final payload = await _resolveCid(cid);
       if (payload != null) {
-        _seenCids.add(cid);
         if (stripCid && extracted.sanitizedHref != null) {
           _replaceUrl(extracted.sanitizedHref!);
         }
+        if (_handleForcedWebRedirect(payload)) return null;
+        _payloadsByCid[cid] = payload;
         _emit(payload);
       }
       return payload;
@@ -155,6 +168,7 @@ class FlutterLinkmeSdkWeb extends FlutterLinkmeSdkPlatform {
     if (_isSameOrigin(parsed)) {
       final payload = await _resolveUniversalLink(parsed.toString());
       if (payload != null) {
+        if (_handleForcedWebRedirect(payload)) return null;
         _emit(payload);
       }
       return payload;
@@ -177,12 +191,13 @@ class FlutterLinkmeSdkWeb extends FlutterLinkmeSdkPlatform {
     if (response == null || response.status < 200 || response.status >= 300) {
       return null;
     }
-    final payload = LinkMePayload.fromJson(<String, dynamic>{
+    final parsed = LinkMePayload.tryFromJson(response.json);
+    if (parsed == null) return null;
+    return LinkMePayload.fromJson(<String, dynamic>{
       ...response.json,
       if (response.json['cid'] == null) 'cid': cid,
       if (response.json['isLinkMe'] == null) 'isLinkMe': true,
     });
-    return payload;
   }
 
   Future<LinkMePayload?> _resolveUniversalLink(String url) async {
@@ -211,6 +226,8 @@ class FlutterLinkmeSdkWeb extends FlutterLinkmeSdkPlatform {
       return null;
     }
 
+    final parsed = LinkMePayload.tryFromJson(response.json);
+    if (parsed == null) return null;
     return LinkMePayload.fromJson(<String, dynamic>{
       ...response.json,
       if (response.json['isLinkMe'] == null) 'isLinkMe': true,
@@ -227,18 +244,18 @@ class FlutterLinkmeSdkWeb extends FlutterLinkmeSdkPlatform {
   }
 
   Map<String, dynamic> _buildDevicePayload() {
-    final nav = html.window.navigator;
+    final nav = web.window.navigator;
     final payload = <String, dynamic>{
       'platform': 'web',
       if (nav.userAgent.isNotEmpty) 'userAgent': nav.userAgent,
       if (nav.language.isNotEmpty) 'locale': nav.language,
-      if (nav.languages != null && nav.languages!.isNotEmpty)
-        'preferredLocales': nav.languages,
+      // Navigator.languages is a JSArray; the primary locale is already
+      // represented by Navigator.language and is safe to serialize.
       'timezone': DateTime.now().timeZoneName,
       'screen': <String, dynamic>{
-        'width': html.window.screen?.width,
-        'height': html.window.screen?.height,
-        'pixelRatio': html.window.devicePixelRatio,
+        'width': web.window.screen.width,
+        'height': web.window.screen.height,
+        'pixelRatio': web.window.devicePixelRatio,
       },
     };
     return payload;
@@ -311,36 +328,40 @@ class FlutterLinkmeSdkWeb extends FlutterLinkmeSdkPlatform {
       return const _CidExtraction();
     }
 
-    final hashParts = hash.split('?');
-    if (hashParts.length == 2) {
-      final params = Uri.splitQueryString(hashParts[1]);
-      final hashCid = params['cid'];
-      if (hashCid != null && hashCid.isNotEmpty) {
-        params.remove('cid');
-        final remaining = Uri(
-          queryParameters: params.isEmpty ? null : params,
-        ).query;
-        final sanitizedHash = remaining.isEmpty
-            ? hashParts[0]
-            : '${hashParts[0]}?$remaining';
-        return _CidExtraction(
-          cid: hashCid,
-          sanitizedHref: parsed.replace(fragment: sanitizedHash).toString(),
-        );
+    try {
+      final hashParts = hash.split('?');
+      if (hashParts.length == 2) {
+        final params = Uri.splitQueryString(hashParts[1]);
+        final hashCid = params['cid'];
+        if (hashCid != null && hashCid.isNotEmpty) {
+          params.remove('cid');
+          final remaining = Uri(
+            queryParameters: params.isEmpty ? null : params,
+          ).query;
+          final sanitizedHash = remaining.isEmpty
+              ? hashParts[0]
+              : '${hashParts[0]}?$remaining';
+          return _CidExtraction(
+            cid: hashCid,
+            sanitizedHref: parsed.replace(fragment: sanitizedHash).toString(),
+          );
+        }
+      } else if (hash.startsWith('cid=')) {
+        final params = Uri.splitQueryString(hash);
+        final hashCid = params['cid'];
+        if (hashCid != null && hashCid.isNotEmpty) {
+          params.remove('cid');
+          final sanitizedHash = Uri(
+            queryParameters: params.isEmpty ? null : params,
+          ).query;
+          return _CidExtraction(
+            cid: hashCid,
+            sanitizedHref: parsed.replace(fragment: sanitizedHash).toString(),
+          );
+        }
       }
-    } else if (hash.startsWith('cid=')) {
-      final params = Uri.splitQueryString(hash);
-      final hashCid = params['cid'];
-      if (hashCid != null && hashCid.isNotEmpty) {
-        params.remove('cid');
-        final sanitizedHash = Uri(
-          queryParameters: params.isEmpty ? null : params,
-        ).query;
-        return _CidExtraction(
-          cid: hashCid,
-          sanitizedHref: parsed.replace(fragment: sanitizedHash).toString(),
-        );
-      }
+    } catch (_) {
+      return const _CidExtraction();
     }
     return const _CidExtraction();
   }
@@ -380,7 +401,7 @@ class FlutterLinkmeSdkWeb extends FlutterLinkmeSdkPlatform {
 
   void _replaceUrl(String nextUrl) {
     try {
-      html.window.history.replaceState(html.window.history.state, '', nextUrl);
+      web.window.history.replaceState(web.window.history.state, '', nextUrl);
     } catch (_) {
       // Ignore replace failures in restrictive browsers.
     }
@@ -393,6 +414,22 @@ class FlutterLinkmeSdkWeb extends FlutterLinkmeSdkPlatform {
     }
   }
 
+  bool _handleForcedWebRedirect(LinkMePayload payload) {
+    if (payload.forceRedirectWeb != true) {
+      return false;
+    }
+    final target = (payload.webFallbackUrl ?? '').trim();
+    if (target.isEmpty) {
+      return false;
+    }
+    try {
+      web.window.location.href = target;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<_JsonResponse?> _requestJson(
     String url, {
     required String method,
@@ -400,21 +437,29 @@ class FlutterLinkmeSdkWeb extends FlutterLinkmeSdkPlatform {
     Map<String, dynamic>? body,
   }) async {
     try {
-      final request = await html.HttpRequest.request(
-        url,
-        method: method,
-        sendData: body == null ? null : jsonEncode(body),
-        requestHeaders: headers,
-      );
-      final responseText = request.responseText;
-      final decoded = responseText == null || responseText.isEmpty
-          ? <String, dynamic>{}
-          : jsonDecode(responseText);
-      final status = request.status ?? 0;
-      if (decoded is Map<String, dynamic>) {
-        return _JsonResponse(status, decoded);
+      final client = http.Client();
+      try {
+        final response = method.toUpperCase() == 'GET'
+            ? await client.get(Uri.parse(url), headers: headers)
+            : await client
+                  .send(
+                    http.Request(method, Uri.parse(url))
+                      ..headers.addAll(headers)
+                      ..body = body == null ? '' : jsonEncode(body),
+                  )
+                  .then(http.Response.fromStream);
+        final responseText = response.body;
+        final decoded = responseText.isEmpty
+            ? <String, dynamic>{}
+            : jsonDecode(responseText);
+        final status = response.statusCode;
+        if (decoded is Map<String, dynamic>) {
+          return _JsonResponse(status, decoded);
+        }
+        return _JsonResponse(status, <String, dynamic>{});
+      } finally {
+        client.close();
       }
-      return _JsonResponse(status, <String, dynamic>{});
     } catch (_) {
       return null;
     }

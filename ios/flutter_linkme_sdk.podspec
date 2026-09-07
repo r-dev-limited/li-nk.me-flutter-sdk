@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'flutter_linkme_sdk'
-  s.version          = '0.3.0'
+  s.version          = '0.3.1'
   s.summary          = 'Flutter wrapper around LinkMe native SDKs.'
   s.description      = <<-DESC
 Flutter plugin that bridges LinkMeKit (iOS/macOS) and the LinkMe Android SDK for deep linking + attribution.
@@ -14,7 +14,7 @@ Flutter plugin that bridges LinkMeKit (iOS/macOS) and the LinkMe Android SDK for
     'flutter_linkme_sdk_privacy' => ['flutter_linkme_sdk/Sources/flutter_linkme_sdk/PrivacyInfo.xcprivacy']
   }
   s.dependency 'Flutter'
-  s.dependency 'LinkMeKit', '~> 0.2.14'
+  s.dependency 'LinkMeKit', '~> 0.2.15'
   s.platform = :ios, '14.0'
 
   # Flutter.framework does not contain an i386 slice.

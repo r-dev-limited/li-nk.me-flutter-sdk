@@ -43,6 +43,9 @@ class FlutterLinkmeSdkPlugin :
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        unsubscribe?.invoke()
+        unsubscribe = null
+        eventSink = null
         methodChannel.setMethodCallHandler(null)
         eventChannel.setStreamHandler(null)
         applicationContext = null
@@ -54,9 +57,20 @@ class FlutterLinkmeSdkPlugin :
             "getInitialLink" -> handleGetInitialLink(result)
             "claimDeferredIfAvailable" -> handleClaimDeferred(result)
             "setUserId" -> {
+                if ((call.arguments as? Map<*, *>)?.containsKey("userId") != true) {
+                    result.error("invalid_args", "userId is required (or null to clear)", null)
+                    return
+                }
                 val userId = call.argument<String>("userId")
-                if (userId.isNullOrBlank()) {
-                    result.error("invalid_args", "userId is required", null)
+                if (userId == null) {
+                    // The currently published Android core (0.2.13) has no nullable
+                    // setter. Keep the bridge binary-compatible until a new artifact
+                    // containing LinkMe.setUserId(String?) is published.
+                    result.error("clear_identity_unsupported", "Update the Android core SDK to clear user identity", null)
+                    return
+                }
+                if (userId.isBlank()) {
+                    result.error("invalid_args", "userId must not be blank", null)
                     return
                 }
                 LinkMe.shared.setUserId(userId)
@@ -126,6 +140,7 @@ class FlutterLinkmeSdkPlugin :
             sendDeviceInfo = args?.get("sendDeviceInfo") as? Boolean ?: true,
             includeVendorId = args?.get("includeVendorId") as? Boolean ?: true,
             includeAdvertisingId = args?.get("includeAdvertisingId") as? Boolean ?: false,
+            debug = args?.get("debug") as? Boolean ?: false,
         )
         LinkMe.shared.configure(ctx, config)
         activity?.intent?.let { LinkMe.shared.handleIntent(it) }
@@ -145,63 +160,9 @@ class FlutterLinkmeSdkPlugin :
             return
         }
         
-        // Get config for potential fallback (native SDK's InstallReferrer may fail on emulator)
-        val config = try {
-            val configField = LinkMe.shared::class.java.getDeclaredField("config")
-            configField.isAccessible = true
-            configField.get(LinkMe.shared) as? LinkMe.Config
-        } catch (_: Throwable) { null }
-        
         LinkMe.shared.claimDeferredIfAvailable(ctx) { payload ->
-            if (payload != null) {
-                mainHandler.post { result.success(payload.toMap()) }
-            } else if (config != null) {
-                // Fallback: try direct fingerprint claim (InstallReferrer unavailable)
-                directFingerprintClaim(ctx, config, result)
-            } else {
-                mainHandler.post { result.success(null) }
-            }
+            mainHandler.post { result.success(payload?.toMap()) }
         }
-    }
-    
-    private fun directFingerprintClaim(ctx: Context, config: LinkMe.Config, result: MethodChannel.Result) {
-        Thread {
-            try {
-                val url = URL("${config.baseUrl.trimEnd('/')}/api/deferred/claim")
-                val conn = url.openConnection() as HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.setRequestProperty("Content-Type", "application/json")
-                conn.setRequestProperty("Accept", "application/json")
-                config.appId?.let { conn.setRequestProperty("x-app-id", it) }
-                config.appKey?.let { conn.setRequestProperty("x-api-key", it) }
-                conn.connectTimeout = 10000
-                conn.readTimeout = 10000
-                conn.doOutput = true
-                
-                val body = "{\"bundleId\":\"${ctx.packageName}\",\"platform\":\"android\"}"
-                conn.outputStream.use { it.write(body.toByteArray()) }
-                
-                if (conn.responseCode in 200..299) {
-                    val responseBody = conn.inputStream.bufferedReader().use { it.readText() }
-                    val payloadMap = parseJsonToMap(responseBody)
-                    mainHandler.post { result.success(payloadMap) }
-                } else {
-                    mainHandler.post { result.success(null) }
-                }
-            } catch (_: Throwable) {
-                mainHandler.post { result.success(null) }
-            }
-        }.start()
-    }
-    
-    private fun parseJsonToMap(json: String): Map<String, Any?>? {
-        try {
-            val linkIdMatch = Regex("\"linkId\"\\s*:\\s*\"([^\"]+)\"").find(json)
-            if (linkIdMatch != null) {
-                return mapOf("linkId" to linkIdMatch.groupValues[1])
-            }
-        } catch (_: Throwable) {}
-        return null
     }
 
     private fun handleDebugVisit(call: MethodCall, result: MethodChannel.Result) {
@@ -233,6 +194,7 @@ class FlutterLinkmeSdkPlugin :
     }
 
     override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+        unsubscribe?.invoke()
         eventSink = events
         unsubscribe = LinkMe.shared.addListener { payload ->
             mainHandler.post { events?.success(payload.toMap()) }
@@ -276,6 +238,11 @@ class FlutterLinkmeSdkPlugin :
 
 private fun LinkPayload.toMap(): Map<String, Any?> {
     val map = mutableMapOf<String, Any?>()
+    // Keep the bridge binary-compatible with the currently published Android
+    // core (0.2.13), then pick up cid/duplicate when a newer core exposes
+    // those fields. Direct property access would make old consumers fail to
+    // compile before they can upgrade the native artifact.
+    optionalProperty("cid")?.let { map["cid"] = it }
     linkId?.let { map["linkId"] = it }
     path?.let { map["path"] = it }
     params?.let { map["params"] = it }
@@ -283,7 +250,15 @@ private fun LinkPayload.toMap(): Map<String, Any?> {
     custom?.let { map["custom"] = it }
     url?.let { map["url"] = it }
     isLinkMe?.let { map["isLinkMe"] = it }
+    optionalProperty("duplicate")?.let { map["duplicate"] = it }
     forceRedirectWeb?.let { map["forceRedirectWeb"] = it }
     webFallbackUrl?.let { map["webFallbackUrl"] = it }
     return map
+}
+
+private fun LinkPayload.optionalProperty(name: String): Any? {
+    val suffix = name.replaceFirstChar { it.uppercaseChar() }
+    return runCatching {
+        javaClass.getMethod("get$suffix").invoke(this)
+    }.getOrNull()
 }

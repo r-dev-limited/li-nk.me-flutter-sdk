@@ -1,15 +1,15 @@
 group = "me.link"
-version = "0.2.13"
+version = "0.2.14"
 
 buildscript {
-    ext.kotlin_version = "2.1.0"
+    ext.kotlin_version = "2.2.20"
     repositories {
         google()
         mavenCentral()
     }
 
     dependencies {
-        classpath("com.android.tools.build:gradle:8.9.1")
+        classpath("com.android.tools.build:gradle:8.11.1")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")
     }
 }
@@ -53,5 +53,5 @@ android {
 }
 
 dependencies {
-    implementation("com.github.r-dev-limited:li-nk.me-android-sdk:0.2.13")
+    implementation("com.github.r-dev-limited:li-nk.me-android-sdk:0.2.14")
 }

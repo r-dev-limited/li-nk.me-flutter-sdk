@@ -65,8 +65,20 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
         }
       }
     case "setUserId":
-      guard let userId = (call.arguments as? [String: Any])?["userId"] as? String else {
-        result(FlutterError(code: "invalid_args", message: "userId is required", details: nil))
+      guard let args = call.arguments as? [String: Any], args.keys.contains("userId") else {
+        result(FlutterError(code: "invalid_args", message: "userId is required (or null to clear)", details: nil))
+        return
+      }
+      guard let userId = args["userId"] as? String else {
+        result(FlutterError(
+          code: "identity_reset_unavailable",
+          message: "Clearing user identity requires LinkMeKit 0.2.15 or later",
+          details: nil
+        ))
+        return
+      }
+      if userId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        result(FlutterError(code: "invalid_args", message: "userId must not be blank", details: nil))
         return
       }
       LinkMe.shared.setUserId(userId)
@@ -159,6 +171,7 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
   public func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink)
     -> FlutterError?
   {
+    unsubscribe?()
     eventSink = events
     unsubscribe = LinkMe.shared.addListener { [weak self] payload in
       self?.emit(payload)
@@ -184,6 +197,10 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
   private func dictionary(from payload: LinkPayload?) -> [String: Any]? {
     guard let payload else { return nil }
     var dict: [String: Any] = [:]
+    // LinkMeKit 0.2.14 does not expose the v1 attribution fields yet. Read
+    // them reflectively so the bridge remains source/binary compatible while
+    // forwarding them automatically when a newer native artifact is linked.
+    if let cid: String = payload.optionalField("cid") { dict["cid"] = cid }
     if let linkId = payload.linkId { dict["linkId"] = linkId }
     if let path = payload.path { dict["path"] = path }
     if let params = payload.params { dict["params"] = params }
@@ -191,9 +208,16 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
     if let custom = payload.custom { dict["custom"] = custom }
     if let url = payload.url { dict["url"] = url }
     if let isLinkMe = payload.isLinkMe { dict["isLinkMe"] = isLinkMe }
+    if let duplicate: Bool = payload.optionalField("duplicate") { dict["duplicate"] = duplicate }
     if let forceRedirectWeb = payload.forceRedirectWeb { dict["forceRedirectWeb"] = forceRedirectWeb }
     if let webFallbackUrl = payload.webFallbackUrl { dict["webFallbackUrl"] = webFallbackUrl }
     return dict
+  }
+}
+
+private extension LinkPayload {
+  func optionalField<T>(_ name: String) -> T? {
+    Mirror(reflecting: self).children.first(where: { $0.label == name })?.value as? T
   }
 }
 

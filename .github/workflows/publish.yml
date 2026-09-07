@@ -4,18 +4,36 @@ on:
   push:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+*"
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "Git tag to release (e.g., v1.2.3)"
-        required: true
-        type: string
 
 jobs:
+  test:
+    name: Verify Flutter SDK before publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.4'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter test --coverage
+      - run: dart run tool/check_lcov.dart
+      - run: flutter analyze
+      - run: flutter pub get
+        working-directory: example
+      - run: flutter build web --no-pub
+        working-directory: example
+      - run: flutter build web --wasm --no-pub
+        working-directory: example
+      - run: flutter build apk --debug --no-pub
+        working-directory: example
+      - name: Validate pub archive
+        run: dart pub publish --dry-run
   publish:
+    needs: test
     permissions:
       id-token: write
     uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
     with:
       working-directory: .
-

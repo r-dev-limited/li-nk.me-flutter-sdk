@@ -28,7 +28,7 @@ Or add manually to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_linkme_sdk: ^0.3.0
+  flutter_linkme_sdk: ^0.3.1
 ```
 
 ### 3. Configure native platforms
@@ -60,6 +60,13 @@ Add a custom URL scheme in `Info.plist` (`CFBundleURLSchemes`): `yourapp`
   <data android:scheme="yourapp" />
 </intent-filter>
 ```
+
+**macOS** — The plugin uses Swift Package Manager and registers Flutter's
+`FlutterAppLifecycleDelegate` hook. LinkMeKit 0.2.15 exposes URL forwarding only
+on UIKit targets, so the macOS hook returns `false` until a macOS-capable native
+artifact is released. Keep the generated Flutter SPM integration enabled for
+the `macos` target and add URL Types/associated domains when that artifact is
+available.
 
 ### 4. Initialize and handle links
 
@@ -135,16 +142,22 @@ Enable **Pasteboard for Deferred Links** in App Settings for deterministic iOS a
 
 Flutter discovers the plugin's Swift packages from `ios/flutter_linkme_sdk/Package.swift` and
 `macos/flutter_linkme_sdk/Package.swift`. Flutter 3.44+ generates the `FlutterFramework`
-package sibling automatically, and the plugin resolves LinkMeKit 0.2.14 from its repository-root
-Swift package. SwiftPM is the recommended integration for `flutter_linkme_sdk` 0.3.0.
+package sibling automatically, and the plugin resolves LinkMeKit 0.2.15 from its repository-root
+Swift package. SwiftPM is the recommended integration for `flutter_linkme_sdk` 0.3.1.
 
-Projects that intentionally disable SwiftPM should remain on `flutter_linkme_sdk` 0.2.13 until
-the LinkMeKit 0.2.14 CocoaPods spec is available on trunk. CocoaPods users can consume the iOS
-SDK 0.2.14 directly from its Git tag as documented in the [iOS SDK README](https://github.com/r-dev-limited/li-nk.me-ios-sdk/tree/v0.2.14).
+Projects that intentionally disable SwiftPM should remain on `flutter_linkme_sdk` 0.3.0 until
+the LinkMeKit 0.2.15 CocoaPods spec is available on trunk. CocoaPods users can consume the iOS
+SDK 0.2.15 directly from its Git tag as documented in the [iOS SDK README](https://github.com/r-dev-limited/li-nk.me-ios-sdk/tree/v0.2.15).
 
 ### Forced web redirects
 
 If a payload contains `forceRedirectWeb: true` and a non-empty `webFallbackUrl`, the SDK opens the external browser automatically and does not deliver that payload to `getInitialLink()`, `claimDeferredIfAvailable()`, or `onLink`.
+
+`setUserId(null)` clears identity on Web, React Native, and the local native
+cores. The Flutter iOS/macOS bridges report `identity_reset_unavailable` while
+they are linked to LinkMeKit 0.2.15, and the Flutter Android bridge reports
+`clear_identity_unsupported` while it is linked to JitPack Android 0.2.14.
+Upgrade the native artifacts before relying on Flutter native logout clearing.
 
 ## API reference
 
@@ -155,7 +168,7 @@ If a payload contains `forceRedirectWeb: true` and a non-empty `webFallbackUrl`,
 | `onLink` (Stream) | Stream of payloads while the app is running |
 | `claimDeferredIfAvailable()` | Claim deferred deep link on first install |
 | `track(event, {properties})` | Send analytics events |
-| `setUserId(userId)` | Associate a user ID |
+| `setUserId(userId)` | Associate a user ID; pass `null` to clear it |
 | `setAdvertisingConsent(granted)` | Toggle Ad ID inclusion |
 | `setReady()` | Signal readiness to process queued links |
 | `debugVisitUrl(url, {headers})` | Debug helper for testing link resolution |
@@ -189,6 +202,19 @@ cd example
 cp .env.example .env  # fill in your keys
 flutter run
 ```
+
+Flutter 3.44's SwiftPM generator derives a local package identity from the
+parent directory name. Because this checkout is nested under `sdks/flutter`,
+the repository integration command stages a package-name consumer before
+building iOS/macOS:
+
+```bash
+cd ../..
+IOS_DEVICE="iPhone 17 Pro" npm run test:flutter
+```
+
+Published applications use `flutter_linkme_sdk` from pub.dev and do not need
+this staging step.
 
 ## Troubleshooting
 
