@@ -28,7 +28,7 @@ Or add manually to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_linkme_sdk: ^0.3.3
+  flutter_linkme_sdk: ^0.3.4
 ```
 
 ### 3. Configure native platforms
@@ -62,7 +62,7 @@ Add a custom URL scheme in `Info.plist` (`CFBundleURLSchemes`): `yourapp`
 ```
 
 **macOS** — The plugin uses Swift Package Manager and registers Flutter's
-`FlutterAppLifecycleDelegate` hook. LinkMeKit 0.2.15 handles custom-scheme URLs
+`FlutterAppLifecycleDelegate` hook. LinkMeKit 0.2.16 handles custom-scheme URLs
 on macOS through `handleOpenURLs(_:)`; keep the generated Flutter SPM
 integration enabled for the `macos` target and configure the app's URL Types.
 
@@ -140,19 +140,19 @@ Enable **Pasteboard for Deferred Links** in App Settings for deterministic iOS a
 
 Flutter discovers the plugin's Swift packages from `ios/flutter_linkme_sdk/Package.swift` and
 `macos/flutter_linkme_sdk/Package.swift`. Flutter 3.44+ generates the `FlutterFramework`
-package sibling automatically, and the plugin resolves LinkMeKit 0.2.15 from its repository-root
-Swift package. SwiftPM is the recommended integration for `flutter_linkme_sdk` 0.3.3.
+package sibling automatically, and the plugin resolves LinkMeKit 0.2.16 from its repository-root
+Swift package. SwiftPM is the recommended integration for `flutter_linkme_sdk` 0.3.4.
 
 Projects that intentionally disable SwiftPM can use the plugin's CocoaPods integration once the
-LinkMeKit 0.2.15 spec is available on trunk. Until then, CocoaPods users can consume the iOS SDK
-0.2.15 directly from its Git tag as documented in the [iOS SDK README](https://github.com/r-dev-limited/li-nk.me-ios-sdk/tree/v0.2.15).
+LinkMeKit 0.2.16 spec is available on trunk. Until then, CocoaPods users can consume the iOS SDK
+0.2.16 directly from its Git tag as documented in the [iOS SDK README](https://github.com/r-dev-limited/li-nk.me-ios-sdk/tree/v0.2.16).
 
 ### Forced web redirects
 
 If a payload contains `forceRedirectWeb: true` and a non-empty `webFallbackUrl`, the SDK opens the external browser automatically and does not deliver that payload to `getInitialLink()`, `claimDeferredIfAvailable()`, or `onLink`.
 
 `setUserId(null)` clears identity on Web, React Native, Android 0.2.14, and
-LinkMeKit 0.2.15 through the Flutter bridges. Keep those native versions aligned
+LinkMeKit 0.2.16 through the Flutter bridges. Keep those native versions aligned
 when relying on Flutter native logout clearing.
 
 ## API reference
