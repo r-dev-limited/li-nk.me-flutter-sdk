@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'flutter_linkme_sdk'
-  s.version          = '0.3.1'
+  s.version          = '0.3.3'
   s.summary          = 'Flutter wrapper around LinkMe native SDKs.'
   s.description      = <<-DESC
 Flutter plugin that bridges LinkMeKit (iOS/macOS) and the LinkMe Android SDK for deep linking + attribution.

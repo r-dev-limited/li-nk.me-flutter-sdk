@@ -28,7 +28,7 @@ Or add manually to `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_linkme_sdk: ^0.3.1
+  flutter_linkme_sdk: ^0.3.3
 ```
 
 ### 3. Configure native platforms
@@ -141,11 +141,11 @@ Enable **Pasteboard for Deferred Links** in App Settings for deterministic iOS a
 Flutter discovers the plugin's Swift packages from `ios/flutter_linkme_sdk/Package.swift` and
 `macos/flutter_linkme_sdk/Package.swift`. Flutter 3.44+ generates the `FlutterFramework`
 package sibling automatically, and the plugin resolves LinkMeKit 0.2.15 from its repository-root
-Swift package. SwiftPM is the recommended integration for `flutter_linkme_sdk` 0.3.1.
+Swift package. SwiftPM is the recommended integration for `flutter_linkme_sdk` 0.3.3.
 
-Projects that intentionally disable SwiftPM should remain on `flutter_linkme_sdk` 0.3.0 until
-the LinkMeKit 0.2.15 CocoaPods spec is available on trunk. CocoaPods users can consume the iOS
-SDK 0.2.15 directly from its Git tag as documented in the [iOS SDK README](https://github.com/r-dev-limited/li-nk.me-ios-sdk/tree/v0.2.15).
+Projects that intentionally disable SwiftPM can use the plugin's CocoaPods integration once the
+LinkMeKit 0.2.15 spec is available on trunk. Until then, CocoaPods users can consume the iOS SDK
+0.2.15 directly from its Git tag as documented in the [iOS SDK README](https://github.com/r-dev-limited/li-nk.me-ios-sdk/tree/v0.2.15).
 
 ### Forced web redirects
 
