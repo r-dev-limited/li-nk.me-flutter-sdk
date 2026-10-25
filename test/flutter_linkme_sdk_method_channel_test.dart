@@ -14,12 +14,14 @@ void main() {
   bool nextInitialIsForceWeb = false;
   bool nextDeferredIsForceWeb = false;
   bool nextInitialIsMalformed = false;
+  bool nextMetadataOnly = false;
 
   setUp(() {
     calls.clear();
     nextInitialIsForceWeb = false;
     nextDeferredIsForceWeb = false;
     nextInitialIsMalformed = false;
+    nextMetadataOnly = false;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
           lastCall = methodCall;
@@ -28,6 +30,9 @@ void main() {
             case 'configure':
               return null;
             case 'getInitialLink':
+              if (nextMetadataOnly) {
+                return {'navigationAllowed': false, 'claimId': 'inferred'};
+              }
               if (nextInitialIsMalformed) return <String, dynamic>{};
               if (nextInitialIsForceWeb) {
                 return <String, dynamic>{
@@ -38,6 +43,9 @@ void main() {
               }
               return <String, dynamic>{'path': '/foo'};
             case 'claimDeferredIfAvailable':
+              if (nextMetadataOnly) {
+                return {'navigationAllowed': false, 'claimId': 'inferred'};
+              }
               if (nextDeferredIsForceWeb) {
                 return <String, dynamic>{
                   'linkId': 'lnk_force_deferred',
@@ -60,6 +68,18 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);
   });
+
+  test(
+    'native lifecycle is explicitly unsupported until its bridge is wired',
+    () async {
+      await expectLater(
+        platform.cancelPendingRequests(),
+        throwsUnsupportedError,
+      );
+      await expectLater(platform.dispose(), throwsUnsupportedError);
+      expect(calls, isEmpty);
+    },
+  );
 
   test('configure forwards arguments', () async {
     const config = LinkMeConfig(baseUrl: 'https://example.com');
@@ -115,32 +135,40 @@ void main() {
     });
   });
 
-  test('track, identity, consent, and readiness forward method calls', () async {
-    await platform.track('purchase', properties: {'amount': 12});
-    await platform.setUserId(null);
-    await platform.setAdvertisingConsent(false);
-    await platform.setReady();
+  test(
+    'track, identity, consent, and readiness forward method calls',
+    () async {
+      await platform.track('purchase', properties: {'amount': 12});
+      await platform.setUserId(null);
+      await platform.setAdvertisingConsent(false);
+      await platform.setReady();
 
-    expect(calls.map((call) => call.method), [
-      'track',
-      'setUserId',
-      'setAdvertisingConsent',
-      'setReady',
-    ]);
-    expect(calls[0].arguments, {
-      'event': 'purchase',
-      'properties': {'amount': 12},
-    });
-    expect(calls[1].arguments, {'userId': null});
-    expect(calls[2].arguments, {'granted': false});
-    expect(calls[3].arguments, isNull);
-  });
+      expect(calls.map((call) => call.method), [
+        'track',
+        'setUserId',
+        'setAdvertisingConsent',
+        'setReady',
+      ]);
+      expect(calls[0].arguments, {
+        'event': 'purchase',
+        'properties': {'amount': 12},
+      });
+      expect(calls[1].arguments, {'userId': null});
+      expect(calls[2].arguments, {'granted': false});
+      expect(calls[3].arguments, isNull);
+    },
+  );
 
   test('onLink filters null and malformed event payloads', () async {
     const eventChannel = EventChannel('flutter_linkme_sdk/events');
     final events = <dynamic>[
       null,
       <String, dynamic>{},
+      <String, dynamic>{
+        'navigationAllowed': false,
+        'claimId': 'inferred',
+        'path': '/must-not-route',
+      },
       <String, dynamic>{'path': '/valid'},
     ];
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -167,4 +195,12 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockStreamHandler(eventChannel, null);
   });
+  test(
+    'metadata-only native responses do not become initial/deferred navigation',
+    () async {
+      nextMetadataOnly = true;
+      expect(await platform.getInitialLink(), isNull);
+      expect(await platform.claimDeferredIfAvailable(), isNull);
+    },
+  );
 }

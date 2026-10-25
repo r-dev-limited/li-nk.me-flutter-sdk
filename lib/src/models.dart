@@ -11,6 +11,7 @@ class LinkMeConfig {
     this.includeVendorId = true,
     this.includeAdvertisingId = false,
     this.debug = false,
+    this.requestTimeoutMs = 15000,
   });
 
   final String? baseUrl;
@@ -25,16 +26,33 @@ class LinkMeConfig {
   final bool includeAdvertisingId;
   final bool debug;
 
-  Map<String, dynamic> toJson() => <String, dynamic>{
-    'baseUrl': baseUrl ?? 'https://li-nk.me',
-    if (appId != null) 'appId': appId,
-    if (appKey != null) 'appKey': appKey,
-    'enablePasteboard': enablePasteboard,
-    'sendDeviceInfo': sendDeviceInfo,
-    'includeVendorId': includeVendorId,
-    'includeAdvertisingId': includeAdvertisingId,
-    'debug': debug,
-  };
+  /// Total Web HTTP deadline. Native bridge forwarding remains unreleased work.
+  final int requestTimeoutMs;
+
+  void validate() {
+    if (requestTimeoutMs < 1 || requestTimeoutMs > 2147483647) {
+      throw ArgumentError.value(
+        requestTimeoutMs,
+        'requestTimeoutMs',
+        'Must be from 1 to 2147483647',
+      );
+    }
+  }
+
+  Map<String, dynamic> toJson() {
+    validate();
+    return <String, dynamic>{
+      'baseUrl': baseUrl ?? 'https://li-nk.me',
+      if (appId != null) 'appId': appId,
+      if (appKey != null) 'appKey': appKey,
+      'enablePasteboard': enablePasteboard,
+      'sendDeviceInfo': sendDeviceInfo,
+      'includeVendorId': includeVendorId,
+      'includeAdvertisingId': includeAdvertisingId,
+      'debug': debug,
+      'requestTimeoutMs': requestTimeoutMs,
+    };
+  }
 
   LinkMeConfig copyWith({
     String? baseUrl,
@@ -45,6 +63,7 @@ class LinkMeConfig {
     bool? includeVendorId,
     bool? includeAdvertisingId,
     bool? debug,
+    int? requestTimeoutMs,
   }) {
     return LinkMeConfig(
       baseUrl: baseUrl ?? this.baseUrl,
@@ -55,6 +74,7 @@ class LinkMeConfig {
       includeVendorId: includeVendorId ?? this.includeVendorId,
       includeAdvertisingId: includeAdvertisingId ?? this.includeAdvertisingId,
       debug: debug ?? this.debug,
+      requestTimeoutMs: requestTimeoutMs ?? this.requestTimeoutMs,
     );
   }
 
@@ -68,6 +88,7 @@ class LinkMeConfig {
       includeVendorId: (json['includeVendorId'] as bool?) ?? true,
       includeAdvertisingId: (json['includeAdvertisingId'] as bool?) ?? false,
       debug: (json['debug'] as bool?) ?? false,
+      requestTimeoutMs: (json['requestTimeoutMs'] as int?) ?? 15000,
     );
   }
 }
@@ -83,6 +104,14 @@ class LinkMePayload {
     this.url,
     this.isLinkMe,
     this.duplicate,
+    this.claimId,
+    this.claimMethod,
+    this.matchConfidence,
+    this.attributionStatus,
+    this.contractVersion,
+    this.claimPolicyVersion,
+
+    this.navigationAllowed,
     this.forceRedirectWeb,
     this.webFallbackUrl,
   });
@@ -96,6 +125,14 @@ class LinkMePayload {
   final String? url;
   final bool? isLinkMe;
   final bool? duplicate;
+  final String? claimId;
+  final String? claimMethod;
+  final String? matchConfidence;
+  final String? attributionStatus;
+  final int? contractVersion;
+  final int? claimPolicyVersion;
+
+  final bool? navigationAllowed;
   final bool? forceRedirectWeb;
   final String? webFallbackUrl;
 
@@ -110,7 +147,8 @@ class LinkMePayload {
       isLinkMe == null &&
       duplicate == null &&
       forceRedirectWeb == null &&
-      webFallbackUrl == null;
+      webFallbackUrl == null &&
+      !(navigationAllowed == false && claimId?.isNotEmpty == true);
 
   Map<String, dynamic> toJson() => <String, dynamic>{
     if (cid != null) 'cid': cid,
@@ -122,6 +160,14 @@ class LinkMePayload {
     if (url != null) 'url': url,
     if (isLinkMe != null) 'isLinkMe': isLinkMe,
     if (duplicate != null) 'duplicate': duplicate,
+    if (claimId != null) 'claimId': claimId,
+    if (claimMethod != null) 'claimMethod': claimMethod,
+    if (matchConfidence != null) 'matchConfidence': matchConfidence,
+    if (attributionStatus != null) 'attributionStatus': attributionStatus,
+    if (contractVersion != null) 'contractVersion': contractVersion,
+    if (claimPolicyVersion != null) 'claimPolicyVersion': claimPolicyVersion,
+
+    if (navigationAllowed != null) 'navigationAllowed': navigationAllowed,
     if (forceRedirectWeb != null) 'forceRedirectWeb': forceRedirectWeb,
     if (webFallbackUrl != null) 'webFallbackUrl': webFallbackUrl,
   };
@@ -137,6 +183,20 @@ class LinkMePayload {
       url: _string(json['url']),
       isLinkMe: _bool(json['isLinkMe']),
       duplicate: _bool(json['duplicate']),
+      claimId: _string(json['claimId']),
+      claimMethod: _string(json['claimMethod']),
+      matchConfidence: _string(json['matchConfidence']),
+      attributionStatus: _string(json['attributionStatus']),
+      contractVersion:
+          json['contractVersion'] is int && json['contractVersion'] > 0
+          ? json['contractVersion'] as int
+          : null,
+      claimPolicyVersion:
+          json['claimPolicyVersion'] is int && json['claimPolicyVersion'] > 0
+          ? json['claimPolicyVersion'] as int
+          : null,
+
+      navigationAllowed: _bool(json['navigationAllowed']),
       forceRedirectWeb: _bool(json['forceRedirectWeb']),
       webFallbackUrl: _string(json['webFallbackUrl']),
     );
@@ -144,6 +204,10 @@ class LinkMePayload {
 
   static LinkMePayload? tryFromJson(dynamic value) {
     if (value is! Map) return null;
+    if (value['navigationAllowed'] != null &&
+        value['navigationAllowed'] is! bool) {
+      return null;
+    }
     final json = <String, dynamic>{};
     value.forEach((dynamic key, dynamic item) {
       if (key is String) json[key] = item;

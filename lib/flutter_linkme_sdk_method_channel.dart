@@ -23,7 +23,7 @@ class MethodChannelFlutterLinkmeSdk extends FlutterLinkmeSdkPlatform {
         .map<LinkMePayload?>((dynamic event) {
           return LinkMePayload.tryFromJson(event);
         })
-        .where((LinkMePayload? payload) => payload != null)
+        .where((LinkMePayload? payload) => payload != null && payload.navigationAllowed != false)
         .cast<LinkMePayload>();
     return _cachedLinkStream!;
   }
@@ -38,7 +38,8 @@ class MethodChannelFlutterLinkmeSdk extends FlutterLinkmeSdkPlatform {
     final payload = await _methodChannel.invokeMapMethod<String, dynamic>(
       'getInitialLink',
     );
-    return LinkMePayload.tryFromJson(payload);
+    final parsed = LinkMePayload.tryFromJson(payload);
+    return parsed?.navigationAllowed == false ? null : parsed;
   }
 
   @override
@@ -46,7 +47,8 @@ class MethodChannelFlutterLinkmeSdk extends FlutterLinkmeSdkPlatform {
     final payload = await _methodChannel.invokeMapMethod<String, dynamic>(
       'claimDeferredIfAvailable',
     );
-    return LinkMePayload.tryFromJson(payload);
+    final parsed = LinkMePayload.tryFromJson(payload);
+    return parsed?.navigationAllowed == false ? null : parsed;
   }
 
   @override

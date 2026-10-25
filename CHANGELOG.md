@@ -4,6 +4,18 @@ All notable changes to the LinkMe Flutter SDK.
 
 ## Unreleased
 
+- Add optional native lifecycle V1 channels for Android/iOS/macOS with attachment ownership, final-queue generation guards, bounded once-only read completion and scoped disposal on detach. Reject unsupported stream contracts explicitly. Public Dart integration and updated native core pins remain pending.
+- Queue the latest preconfigure native URL/Intent within its plugin attachment instead of forwarding it into another unconfigured singleton context. Add Apple selector/core integration and Android reflection adapter tests with CI gates.
+
+- Add Web total HTTP deadlines through `requestTimeoutMs` (15000 ms by default), abort/close ownership, cancellation/disposal and stale app/identity guards. Preserve navigation listening after cancellation and reset user/CID context on reconfigure.
+- Guard ordered routing-stream delivery across reentrant lifecycle changes and paused subscriptions. Disposal closes the old stream; reconfigure requires new subscriptions.
+- Add controlled controller tests and Chrome HTTP checks for JavaScript/WebAssembly, with the existing 75% coverage gate retained. Native channel lifecycle forwarding remains unimplemented; native cancellation/disposal explicitly report unsupported.
+
+- Preserve optional `navigationAllowed` and suppress routing callbacks/browser launches when false. Accept campaign-only inferred receipts without exposing a CID or private route.
+
+- Native forwarding uses optional fields; install native SDK builds containing the metadata to receive it on Android/iOS/macOS. Published core dependencies have not been updated yet.
+- Preserve additive claim ID, method, confidence, attribution status, payload contract version, and claim policy version in routing payloads.
+
 - Enable SwiftPM explicitly for the example and replace its obsolete iOS template test with native configuration, validation, and attribution-event bridge tests.
 - Correct the README to use the public instance-based `LinkMe()` API.
 

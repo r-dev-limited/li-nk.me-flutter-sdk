@@ -1,3 +1,4 @@
+import CoreFoundation
 import Flutter
 import LinkMeKit
 import UIKit
@@ -5,6 +6,9 @@ import UIKit
 public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
   private var eventSink: FlutterEventSink?
   private var unsubscribe: (() -> Void)?
+  private var legacyConfigured = false
+  private var pendingURL: URL?
+  private lazy var lifecycle = NativeLifecycleBridge(core: LinkMe.shared as AnyObject as? NSObject)
 
   public static func register(with registrar: FlutterPluginRegistrar) {
     let methodChannel = FlutterMethodChannel(
@@ -18,12 +22,39 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
   }
 
   public func detachFromEngine(for registrar: FlutterPluginRegistrar) {
+    lifecycle.detach()
+    legacyConfigured = false
+    pendingURL = nil
     unsubscribe?()
     unsubscribe = nil
     eventSink = nil
   }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    if call.method == "lifecycleVersion" { result(lifecycle.version()); return }
+    if call.method == "lifecycle" || call.method == "lifecycleRead" {
+      guard let args = call.arguments as? NSDictionary else {
+        result(FlutterError(code: "invalid_args", message: "Lifecycle arguments are required", details: nil)); return
+      }
+      if call.method == "lifecycleRead" { lifecycle.read(args) { result($0) } }
+      else {
+        let reply = lifecycle.control(args)
+        if reply["ok"] as? Bool == true {
+          if args["action"] as? String == "configure" {
+            legacyConfigured = false
+            unsubscribe?(); unsubscribe = nil
+            if let url = pendingURL { pendingURL = nil; LinkMe.shared.handle(url: url) }
+          }
+          if args["action"] as? String == "dispose" { legacyConfigured = false; pendingURL = nil }
+        }
+        result(reply)
+      }
+      return
+    }
+    if lifecycle.isActive && ["configure", "getInitialLink", "claimDeferredIfAvailable", "setUserId",
+      "setAdvertisingConsent", "track", "setReady"].contains(call.method) {
+      result(FlutterError(code: "lifecycle_required", message: "Use the active lifecycle protocol", details: nil)); return
+    }
     switch call.method {
     case "configure":
       guard let args = call.arguments as? [String: Any] else {
@@ -48,6 +79,8 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
         debug: args["debug"] as? Bool ?? false
       )
       LinkMe.shared.configure(config: config)
+      legacyConfigured = true
+      if let url = pendingURL { pendingURL = nil; LinkMe.shared.handle(url: url) }
       // Keep Flutter behavior aligned with Android bridge: process links
       // immediately after configure unless app explicitly re-gates itself.
       LinkMe.shared.setReady()
@@ -166,7 +199,19 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
     -> FlutterError?
   {
     unsubscribe?()
+    lifecycle.stopListening()
     eventSink = events
+    if let arguments {
+      guard let args = arguments as? [String: Any], let version = args["contractVersion"] as? NSNumber,
+        CFGetTypeID(version) != CFBooleanGetTypeID(), version.stringValue == "1" else {
+        return FlutterError(code: "invalid_args", message: "Expected lifecycle contractVersion 1", details: nil)
+      }
+      guard lifecycle.version()["contractVersion"] as? Int == 1 else {
+        return FlutterError(code: "unsupported", message: "Native core does not support lifecycle V1", details: nil)
+      }
+      lifecycle.listen { frame in events(frame) }
+      return nil
+    }
     unsubscribe = LinkMe.shared.addListener { [weak self] payload in
       self?.emit(payload)
     }
@@ -174,6 +219,7 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
   }
 
   public func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    lifecycle.stopListening()
     unsubscribe?()
     unsubscribe = nil
     eventSink = nil
@@ -186,6 +232,11 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
       let map = self.dictionary(from: payload) ?? [:]
       self.eventSink?(map)
     }
+  }
+
+  private func receiveURL(_ url: URL) {
+    if lifecycle.ownsContext() || legacyConfigured { LinkMe.shared.handle(url: url) }
+    else { pendingURL = url }
   }
 
   private func dictionary(from payload: LinkPayload?) -> [String: Any]? {
@@ -202,6 +253,14 @@ public class FlutterLinkmeSdkPlugin: NSObject, FlutterPlugin, FlutterStreamHandl
     if let url = payload.url { dict["url"] = url }
     if let isLinkMe = payload.isLinkMe { dict["isLinkMe"] = isLinkMe }
     if let duplicate: Bool = payload.optionalField("duplicate") { dict["duplicate"] = duplicate }
+    if let value: Bool = payload.optionalField("navigationAllowed") { dict["navigationAllowed"] = value }
+    if let value: String = payload.optionalField("claimId") { dict["claimId"] = value }
+    if let value: String = payload.optionalField("claimMethod") { dict["claimMethod"] = value }
+    if let value: String = payload.optionalField("matchConfidence") { dict["matchConfidence"] = value }
+    if let value: String = payload.optionalField("attributionStatus") { dict["attributionStatus"] = value }
+    if let value: Int = payload.optionalField("contractVersion") { dict["contractVersion"] = value }
+    if let value: Int = payload.optionalField("claimPolicyVersion") { dict["claimPolicyVersion"] = value }
+
     if let forceRedirectWeb = payload.forceRedirectWeb { dict["forceRedirectWeb"] = forceRedirectWeb }
     if let webFallbackUrl = payload.webFallbackUrl { dict["webFallbackUrl"] = webFallbackUrl }
     return dict
@@ -219,14 +278,16 @@ extension FlutterLinkmeSdkPlugin {
     _ application: UIApplication, continue userActivity: NSUserActivity,
     restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
   ) -> Bool {
-    LinkMe.shared.handle(userActivity: userActivity)
+    guard userActivity.activityType == NSUserActivityTypeBrowsingWeb,
+      let url = userActivity.webpageURL else { return false }
+    receiveURL(url)
     return true
   }
 
   public func application(
     _ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]
   ) -> Bool {
-    LinkMe.shared.handle(url: url)
+    receiveURL(url)
     return true
   }
 }

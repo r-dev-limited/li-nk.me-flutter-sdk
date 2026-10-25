@@ -33,9 +33,15 @@ class FlutterLinkmeSdkPlugin :
     private var activityBinding: ActivityPluginBinding? = null
     private var eventSink: EventChannel.EventSink? = null
     private var unsubscribe: (() -> Unit)? = null
+    private var lifecycle: NativeLifecycleBridge? = null
+    private var legacyConfigured = false
+    private var pendingIntent: Intent? = null
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        legacyConfigured = false
+        pendingIntent = null
         applicationContext = binding.applicationContext
+        lifecycle = NativeLifecycleBridge(LinkMe.shared, { applicationContext }, { action -> mainHandler.post { action() } })
         methodChannel = MethodChannel(binding.binaryMessenger, "flutter_linkme_sdk")
         methodChannel.setMethodCallHandler(this)
         eventChannel = EventChannel(binding.binaryMessenger, "flutter_linkme_sdk/events")
@@ -43,15 +49,48 @@ class FlutterLinkmeSdkPlugin :
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        lifecycle?.detach()
+        lifecycle = null
+        legacyConfigured = false
+        pendingIntent = null
         unsubscribe?.invoke()
         unsubscribe = null
         eventSink = null
+        activityBinding?.removeOnNewIntentListener(this)
+        activityBinding = null
+        activity = null
         methodChannel.setMethodCallHandler(null)
         eventChannel.setStreamHandler(null)
         applicationContext = null
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        if (call.method == "lifecycleVersion") { result.success(lifecycle?.version() ?: mapOf("contractVersion" to 0)); return }
+        if (call.method == "lifecycle" || call.method == "lifecycleRead") {
+            val bridge = lifecycle
+            val raw = call.arguments as? Map<*, *>
+            if (bridge == null || raw == null || raw.keys.any { it !is String }) {
+                result.error("invalid_args", "An attached lifecycle bridge and string-keyed arguments are required", null); return
+            }
+            @Suppress("UNCHECKED_CAST")
+            val args = raw as Map<String, Any?>
+            if (call.method == "lifecycleRead") bridge.read(args) { result.success(it) }
+            else {
+                val reply = bridge.control(args)
+                if (reply["ok"] == true && args["action"] == "configure") {
+                    legacyConfigured = false
+                    unsubscribe?.invoke(); unsubscribe = null
+                    pendingIntent?.let { LinkMe.shared.handleIntent(it) }
+                    pendingIntent = null
+                }
+                if (reply["ok"] == true && args["action"] == "dispose") { legacyConfigured = false; pendingIntent = null }
+                result.success(reply)
+            }
+            return
+        }
+        if (lifecycle?.isActive == true && call.method in setOf("configure", "getInitialLink", "claimDeferredIfAvailable", "setUserId", "setAdvertisingConsent", "track", "setReady")) {
+            result.error("lifecycle_required", "Use the active lifecycle protocol", null); return
+        }
         when (call.method) {
             "configure" -> handleConfigure(call, result)
             "getInitialLink" -> handleGetInitialLink(result)
@@ -136,7 +175,9 @@ class FlutterLinkmeSdkPlugin :
             debug = args?.get("debug") as? Boolean ?: false,
         )
         LinkMe.shared.configure(ctx, config)
-        activity?.intent?.let { LinkMe.shared.handleIntent(it) }
+        legacyConfigured = true
+        pendingIntent?.let { LinkMe.shared.handleIntent(it) }
+        pendingIntent = null
         result.success(null)
     }
 
@@ -188,13 +229,26 @@ class FlutterLinkmeSdkPlugin :
 
     override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
         unsubscribe?.invoke()
+        lifecycle?.stopListening()
         eventSink = events
+        if (arguments != null) {
+            val version = (arguments as? Map<*, *>)?.get("contractVersion")
+            if (version != 1 && version != 1L) {
+                events?.error("invalid_args", "Expected lifecycle contractVersion 1", null); return
+            }
+            if (lifecycle?.version()?.get("contractVersion") != 1) {
+                events?.error("unsupported", "Native core does not support lifecycle V1", null); return
+            }
+            lifecycle?.listen { frame -> events?.success(frame) }
+            return
+        }
         unsubscribe = LinkMe.shared.addListener { payload ->
             mainHandler.post { events?.success(payload.toMap()) }
         }
     }
 
     override fun onCancel(arguments: Any?) {
+        lifecycle?.stopListening()
         unsubscribe?.invoke()
         unsubscribe = null
         eventSink = null
@@ -204,7 +258,7 @@ class FlutterLinkmeSdkPlugin :
         activityBinding = binding
         activity = binding.activity
         binding.addOnNewIntentListener(this)
-        activity?.intent?.let { LinkMe.shared.handleIntent(it) }
+        activity?.intent?.let { receiveIntent(it) }
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
@@ -223,8 +277,14 @@ class FlutterLinkmeSdkPlugin :
         activity = null
     }
 
+    private fun receiveIntent(intent: Intent) {
+        if (intent.data == null) return
+        if (lifecycle?.ownsContext() == true || legacyConfigured) LinkMe.shared.handleIntent(intent)
+        else pendingIntent = Intent(intent)
+    }
+
     override fun onNewIntent(intent: Intent): Boolean {
-        LinkMe.shared.onNewIntent(intent)
+        receiveIntent(intent)
         return false
     }
 }
@@ -242,6 +302,14 @@ private fun LinkPayload.toMap(): Map<String, Any?> {
     url?.let { map["url"] = it }
     isLinkMe?.let { map["isLinkMe"] = it }
     optionalProperty("duplicate")?.let { map["duplicate"] = it }
+    optionalProperty("navigationAllowed")?.let { map["navigationAllowed"] = it }
+    optionalProperty("claimId")?.let { map["claimId"] = it }
+    optionalProperty("claimMethod")?.let { map["claimMethod"] = it }
+    optionalProperty("matchConfidence")?.let { map["matchConfidence"] = it }
+    optionalProperty("attributionStatus")?.let { map["attributionStatus"] = it }
+    optionalProperty("contractVersion")?.let { map["contractVersion"] = it }
+    optionalProperty("claimPolicyVersion")?.let { map["claimPolicyVersion"] = it }
+
     forceRedirectWeb?.let { map["forceRedirectWeb"] = it }
     webFallbackUrl?.let { map["webFallbackUrl"] = it }
     return map
