@@ -51,6 +51,22 @@ abstract class FlutterLinkmeSdkPlatform extends PlatformInterface {
     throw UnimplementedError('track() has not been implemented.');
   }
 
+  Future<void> cancelPendingRequests() {
+    return Future<void>.error(
+      UnsupportedError(
+        'Cancellation requires a lifecycle-capable platform bridge.',
+      ),
+    );
+  }
+
+  Future<void> dispose() {
+    return Future<void>.error(
+      UnsupportedError(
+        'Disposal requires a lifecycle-capable platform bridge.',
+      ),
+    );
+  }
+
   Future<void> setReady() {
     throw UnimplementedError('setReady() has not been implemented.');
   }

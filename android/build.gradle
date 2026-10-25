@@ -47,10 +47,14 @@ android {
     defaultConfig {
         minSdk = 24
     }
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
 }
 
 dependencies {
     implementation("com.github.r-dev-limited:li-nk.me-android-sdk:0.2.14")
+    testImplementation("junit:junit:4.13.2")
 }
 
 kotlin {

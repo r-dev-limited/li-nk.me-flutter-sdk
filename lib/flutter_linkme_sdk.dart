@@ -14,6 +14,7 @@ class LinkMe {
   Stream<LinkMePayload> get onLink => _platform.onLink;
 
   Future<void> configure(LinkMeConfig config) {
+    config.validate();
     return _platform.configure(config);
   }
 
@@ -36,6 +37,10 @@ class LinkMe {
   Future<void> track(String event, {Map<String, dynamic>? properties}) {
     return _platform.track(event, properties: properties);
   }
+
+  Future<void> cancelPendingRequests() => _platform.cancelPendingRequests();
+
+  Future<void> dispose() => _platform.dispose();
 
   Future<void> setReady() {
     return _platform.setReady();
@@ -56,6 +61,7 @@ class LinkMeClient {
   Stream<LinkMePayload> get onLink => _platform.onLink;
 
   Future<void> configure(LinkMeConfig config) {
+    config.validate();
     return _platform.configure(config);
   }
 
@@ -78,6 +84,10 @@ class LinkMeClient {
   Future<void> track(String event, {Map<String, dynamic>? properties}) {
     return _platform.track(event, properties: properties);
   }
+
+  Future<void> cancelPendingRequests() => _platform.cancelPendingRequests();
+
+  Future<void> dispose() => _platform.dispose();
 
   Future<void> setReady() {
     return _platform.setReady();

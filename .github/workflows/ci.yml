@@ -19,6 +19,13 @@ jobs:
       - run: flutter test --coverage
       - run: dart run tool/check_lcov.dart
       - run: flutter analyze
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: "24"
+      - name: Chrome lifecycle and abort checks
+        run: node tool/test_web_lifecycle.mjs
+      - name: Chrome WebAssembly lifecycle checks
+        run: node tool/test_web_lifecycle.mjs --wasm
       - run: flutter pub get
         working-directory: example
       - run: flutter build web --no-pub
@@ -27,6 +34,9 @@ jobs:
         working-directory: example
       - run: flutter build apk --debug --no-pub
         working-directory: example
+      - name: Android native channel lifecycle adapter
+        run: ./gradlew :flutter_linkme_sdk:testDebugUnitTest :flutter_linkme_sdk:lintDebug --no-daemon
+        working-directory: example/android
 
   native-consumer:
     name: Clean SwiftPM consumer (iOS and macOS)
@@ -40,6 +50,8 @@ jobs:
           flutter-version: '3.47.1'
           channel: stable
           cache: true
+      - name: Apple native channel lifecycle adapter
+        run: python3 tool/test_native_lifecycle.py
       - name: Stage package-name consumer
         shell: bash
         run: |

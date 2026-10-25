@@ -16,6 +16,8 @@ class MockFlutterLinkmeSdkPlatform
 
   bool configureCalled = false;
   bool setReadyCalled = false;
+  bool cancellationCalled = false;
+  bool disposalCalled = false;
   LinkMeConfig? lastConfig;
   LinkMePayload? initialPayload;
   LinkMePayload? deferredPayload;
@@ -59,6 +61,17 @@ class MockFlutterLinkmeSdkPlatform
   }
 
   @override
+  Future<void> cancelPendingRequests() async {
+    cancellationCalled = true;
+  }
+
+  @override
+  Future<void> dispose() async {
+    disposalCalled = true;
+    await _events.close();
+  }
+
+  @override
   Future<void> setReady() async {
     setReadyCalled = true;
   }
@@ -76,6 +89,24 @@ class MockFlutterLinkmeSdkPlatform
 }
 
 void main() {
+  test('metadata-only attribution retains its navigation prohibition', () {
+    final payload = LinkMePayload.tryFromJson({
+      'navigationAllowed': false,
+      'claimId': 'inferred',
+    });
+    expect(payload, isNotNull);
+    expect(payload!.navigationAllowed, isFalse);
+    expect(payload.toJson()['navigationAllowed'], isFalse);
+    expect(LinkMePayload.tryFromJson({'navigationAllowed': false}), isNull);
+    expect(
+      LinkMePayload.tryFromJson({
+        'navigationAllowed': 'false',
+        'path': '/must-not-route',
+      }),
+      isNull,
+    );
+  });
+
   final FlutterLinkmeSdkPlatform initialPlatform =
       FlutterLinkmeSdkPlatform.instance;
 
@@ -99,6 +130,7 @@ void main() {
     await linkMe.setAdvertisingConsent(true);
     await linkMe.track('open', properties: {'foo': 'bar'});
     await linkMe.setReady();
+    await linkMe.cancelPendingRequests();
     await linkMe.debugVisitUrl(
       'https://example.com/hello',
       headers: {'Host': 'demo.test'},
@@ -111,9 +143,27 @@ void main() {
     expect(mockPlatform.lastEventName, 'open');
     expect(mockPlatform.lastEventProps, {'foo': 'bar'});
     expect(mockPlatform.setReadyCalled, isTrue);
+    expect(mockPlatform.cancellationCalled, isTrue);
     expect(mockPlatform.lastVisitUrl, 'https://example.com/hello');
     expect(mockPlatform.lastVisitHeaders, {'Host': 'demo.test'});
   });
+
+  test(
+    'client lifecycle facade delegates and validates before reaching a platform',
+    () async {
+      final platform = MockFlutterLinkmeSdkPlatform();
+      final client = LinkMeClient(platform: platform);
+      await client.configure(const LinkMeConfig());
+      await client.cancelPendingRequests();
+      await client.dispose();
+      expect(platform.cancellationCalled, isTrue);
+      expect(platform.disposalCalled, isTrue);
+      expect(
+        () => client.configure(const LinkMeConfig(requestTimeoutMs: 0)),
+        throwsArgumentError,
+      );
+    },
+  );
 
   test('Streams payloads', () async {
     final mockPlatform = MockFlutterLinkmeSdkPlatform();
@@ -145,9 +195,11 @@ void main() {
   });
 
   test('Payload parser accepts the shared v1 golden fixture', () {
-    final fixture = jsonDecode(File(
-      'test/fixtures/link-payload.valid.json',
-    ).readAsStringSync()) as Map<String, dynamic>;
+    final fixture =
+        jsonDecode(
+              File('test/fixtures/link-payload.valid.json').readAsStringSync(),
+            )
+            as Map<String, dynamic>;
     final payload = LinkMePayload.tryFromJson(fixture);
     expect(payload?.cid, 'cid-golden-001');
     expect(payload?.linkId, 'link-golden-001');
@@ -155,6 +207,27 @@ void main() {
     expect(payload?.params?['quote'], 'He said "go"');
     expect(payload?.custom?['control'], 'line\nfeed');
     expect(payload?.duplicate, isFalse);
+  });
+
+  test('Claim policy metadata round-trips through native/web payload maps', () {
+    final fixture =
+        jsonDecode(
+              File(
+                'test/fixtures/link-payload.claim-policy-v2.json',
+              ).readAsStringSync(),
+            )
+            as Map<String, dynamic>;
+    final payload = LinkMePayload.tryFromJson(fixture)!;
+    expect(payload.claimId, fixture['claimId']);
+    expect(payload.claimMethod, 'direct_cid');
+    expect(payload.matchConfidence, 'high');
+    expect(payload.attributionStatus, 'deterministic');
+    expect(payload.claimPolicyVersion, 2);
+    expect(payload.contractVersion, 1);
+    expect(
+      LinkMePayload.fromJson(payload.toJson()).claimId,
+      fixture['claimId'],
+    );
   });
 
   test('Config round-trips defaults and explicit privacy flags', () {
@@ -175,6 +248,20 @@ void main() {
     expect(restored.includeVendorId, isFalse);
     expect(restored.includeAdvertisingId, isTrue);
     expect(restored.debug, isTrue);
+    expect(restored.requestTimeoutMs, 15000);
+    expect(config.copyWith(requestTimeoutMs: 25).requestTimeoutMs, 25);
+    expect(
+      LinkMeConfig.fromJson(
+        config.copyWith(requestTimeoutMs: 25).toJson(),
+      ).requestTimeoutMs,
+      25,
+    );
+    for (final timeout in [0, -1, 2147483648]) {
+      expect(
+        () => LinkMeConfig(requestTimeoutMs: timeout).toJson(),
+        throwsArgumentError,
+      );
+    }
   });
 
   test('Config copyWith changes one field while preserving the rest', () {
@@ -183,7 +270,10 @@ void main() {
       appId: 'app-1',
       sendDeviceInfo: false,
     );
-    final next = config.copyWith(baseUrl: 'https://edge-2.example', debug: true);
+    final next = config.copyWith(
+      baseUrl: 'https://edge-2.example',
+      debug: true,
+    );
     expect(next.baseUrl, 'https://edge-2.example');
     expect(next.appId, 'app-1');
     expect(next.sendDeviceInfo, isFalse);
