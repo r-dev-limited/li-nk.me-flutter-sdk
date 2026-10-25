@@ -2,6 +2,10 @@
 
 Demonstrates how to use the flutter_linkme_sdk plugin.
 
+Use Flutter 3.47.1 (Dart 3.13+) for this example. The SDK itself continues to
+support Flutter 3.44+. The example targets iOS 15+ and macOS 12+, matching
+Flutter 3.47. Swift Package Manager is enabled in the example pubspec.
+
 ## Deep-link setup in this example
 
 This example includes both HTTPS App Links / Universal Links and a custom scheme:

@@ -2,6 +2,14 @@
 
 All notable changes to the LinkMe Flutter SDK.
 
+## Unreleased
+
+- Enable SwiftPM explicitly for the example and replace its obsolete iOS template test with native configuration, validation, and attribution-event bridge tests.
+- Correct the README to use the public instance-based `LinkMe()` API.
+
+- Upgrade the platform interface constraint to 2.1.8 and web bindings to 1.1.2; refresh example dependencies, including Cupertino Icons 2.0.0.
+- Align FVM and CI with Flutter 3.47.1 and the example with Dart 3.13+, iOS 15+, and macOS 12+. Upgrade Android tooling to AGP 8.13.2 and Kotlin 2.3.21 using the compilerOptions DSL.
+
 ## 0.3.4
 
 - Updates the iOS and macOS SwiftPM/CocoaPods bridge dependency to LinkMeKit 0.2.16, which includes bounded native request deadlines and transport regression coverage.
