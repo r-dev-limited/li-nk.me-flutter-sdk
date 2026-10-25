@@ -69,13 +69,16 @@ integration enabled for the `macos` target and configure the app's URL Types.
 ### 4. Initialize and handle links
 
 ```dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_linkme_sdk/flutter_linkme_sdk.dart';
+
+final linkMe = LinkMe();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await LinkMe.shared.configure(
+  await linkMe.configure(
     const LinkMeConfig(
       appId: String.fromEnvironment('LINKME_APP_ID'),
       appKey: String.fromEnvironment('LINKME_APP_KEY'),
@@ -83,10 +86,10 @@ Future<void> main() async {
   );
 
   // Cold-start link
-  final initial = await LinkMe.shared.getInitialLink();
+  final initial = await linkMe.getInitialLink();
 
   // Deferred deep link (first install)
-  final deferred = initial ?? await LinkMe.shared.claimDeferredIfAvailable();
+  final deferred = initial ?? await linkMe.claimDeferredIfAvailable();
 
   runApp(App(initialPayload: initial, deferredPayload: deferred));
 }
@@ -107,7 +110,7 @@ class _AppState extends State<App> {
   void initState() {
     super.initState();
     // Live links while app is running
-    _sub = LinkMe.shared.onLink.listen(routeUser);
+    _sub = linkMe.onLink.listen(routeUser);
   }
 
   @override
@@ -141,7 +144,9 @@ Enable **Pasteboard for Deferred Links** in App Settings for deterministic iOS a
 Flutter discovers the plugin's Swift packages from `ios/flutter_linkme_sdk/Package.swift` and
 `macos/flutter_linkme_sdk/Package.swift`. Flutter 3.44+ generates the `FlutterFramework`
 package sibling automatically, and the plugin resolves LinkMeKit 0.2.16 from its repository-root
-Swift package. SwiftPM is the recommended integration for `flutter_linkme_sdk` 0.3.4.
+Swift package. SwiftPM is the recommended integration for `flutter_linkme_sdk` 0.3.4. The bundled
+example enables it explicitly in its `pubspec.yaml`, so local global Flutter settings
+cannot silently switch the native dependency resolver to CocoaPods.
 
 Projects that intentionally disable SwiftPM can use the plugin's CocoaPods integration once the
 LinkMeKit 0.2.16 spec is available on trunk. Until then, CocoaPods users can consume the iOS SDK

@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
       - uses: subosito/flutter-action@v2.23.0
         with:
-          flutter-version: '3.44.4'
+          flutter-version: '3.47.1'
           channel: stable
           cache: true
       - run: flutter pub get
@@ -38,7 +38,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
       - uses: subosito/flutter-action@v2.23.0
         with:
-          flutter-version: '3.44.4'
+          flutter-version: '3.47.1'
           channel: stable
           cache: true
       - name: Stage package-name consumer

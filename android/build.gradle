@@ -2,14 +2,14 @@ group = "me.link"
 version = "0.2.14"
 
 buildscript {
-    ext.kotlin_version = "2.2.20"
+    ext.kotlin_version = "2.3.21"
     repositories {
         google()
         mavenCentral()
     }
 
     dependencies {
-        classpath("com.android.tools.build:gradle:8.11.1")
+        classpath("com.android.tools.build:gradle:8.13.2")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version")
     }
 }
@@ -34,9 +34,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
 
     sourceSets {
         main.java.srcDirs += "src/main/kotlin"
@@ -54,4 +51,10 @@ android {
 
 dependencies {
     implementation("com.github.r-dev-limited:li-nk.me-android-sdk:0.2.14")
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
 }

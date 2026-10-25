@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
       - uses: subosito/flutter-action@v2.23.0
         with:
-          flutter-version: '3.44.4'
+          flutter-version: '3.47.1'
           channel: stable
           cache: true
       - run: flutter pub get
@@ -37,7 +37,7 @@ jobs:
       - uses: actions/checkout@v7.0.1
       - uses: subosito/flutter-action@v2.23.0
         with:
-          flutter-version: '3.44.4'
+          flutter-version: '3.47.1'
           channel: stable
           cache: true
       - name: Stage package-name consumer
@@ -64,6 +64,19 @@ jobs:
         working-directory: ${{ env.FLUTTER_CONSUMER_ROOT }}/example
       - name: Build iOS simulator consumer
         run: flutter build ios --simulator --no-codesign --no-pub
+        working-directory: ${{ env.FLUTTER_CONSUMER_ROOT }}/example
+      - name: Run iOS plugin bridge tests
+        shell: bash
+        run: |
+          simulator_id=$(xcrun simctl list devices available --json | jq -r '.devices[][] | select(.isAvailable and (.name | startswith("iPhone"))) | .udid' | head -n 1)
+          test -n "$simulator_id"
+          xcodebuild test \
+            -workspace ios/Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=$simulator_id" \
+            -derivedDataPath "$RUNNER_TEMP/flutter-ios-tests" \
+            CODE_SIGNING_ALLOWED=NO
         working-directory: ${{ env.FLUTTER_CONSUMER_ROOT }}/example
       - name: Build macOS consumer
         run: flutter build macos --no-pub
