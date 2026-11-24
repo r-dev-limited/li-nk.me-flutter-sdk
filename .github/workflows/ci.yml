@@ -18,6 +18,8 @@ jobs:
       - run: flutter pub get
       - run: flutter test --coverage
       - run: dart run tool/check_lcov.dart
+      - run: flutter test
+        working-directory: packages/flutter_linkme_sdk_windows
       - run: flutter analyze
       - run: flutter pub get
         working-directory: example
