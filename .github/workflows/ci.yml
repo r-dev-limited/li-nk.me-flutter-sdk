@@ -18,6 +18,8 @@ jobs:
       - run: flutter pub get
       - run: flutter test --coverage
       - run: dart run tool/check_lcov.dart
+      - run: flutter test
+        working-directory: packages/flutter_linkme_sdk_windows
       - run: flutter analyze
       - run: flutter pub get
         working-directory: example
@@ -25,7 +27,10 @@ jobs:
         working-directory: example
       - run: flutter build web --wasm --no-pub
         working-directory: example
-      - run: flutter build apk --debug --no-pub
+      - name: Build Android example with JDK 17
+        run: |
+          flutter config --jdk-dir "$JAVA_HOME_17_X64"
+          flutter build apk --debug --no-pub
         working-directory: example
 
   native-consumer:
@@ -78,3 +83,17 @@ jobs:
           -derivedDataPath $RUNNER_TEMP/flutter-macos-tests
           CODE_SIGNING_ALLOWED=NO
         working-directory: ${{ env.FLUTTER_CONSUMER_ROOT }}/example
+
+  windows-consumer:
+    name: Clean Windows consumer
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          flutter-version: '3.44.4'
+          channel: stable
+          cache: true
+      - run: ./tool/verify_windows_consumer.ps1
+        shell: pwsh
