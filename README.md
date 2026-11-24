@@ -220,3 +220,10 @@ this staging step.
 ## License
 
 Apache-2.0
+
+## Windows
+
+The optional [Windows companion plugin](packages/flutter_linkme_sdk_windows/README.md)
+adds Win32 custom-protocol activation and authenticated click-token claims.
+It requires an installer URI registration and a LinkMe Edge Windows handoff
+configuration.

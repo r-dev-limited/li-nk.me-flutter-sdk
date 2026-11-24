@@ -78,3 +78,17 @@ jobs:
           -derivedDataPath $RUNNER_TEMP/flutter-macos-tests
           CODE_SIGNING_ALLOWED=NO
         working-directory: ${{ env.FLUTTER_CONSUMER_ROOT }}/example
+
+  windows-consumer:
+    name: Clean Windows consumer
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          flutter-version: '3.44.4'
+          channel: stable
+          cache: true
+      - run: ./tool/verify_windows_consumer.ps1
+        shell: pwsh
