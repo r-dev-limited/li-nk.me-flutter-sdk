@@ -25,7 +25,10 @@ jobs:
         working-directory: example
       - run: flutter build web --wasm --no-pub
         working-directory: example
-      - run: flutter build apk --debug --no-pub
+      - name: Build Android example with JDK 17
+        run: |
+          flutter config --jdk-dir "$JAVA_HOME_17_X64"
+          flutter build apk --debug --no-pub
         working-directory: example
 
   native-consumer:
