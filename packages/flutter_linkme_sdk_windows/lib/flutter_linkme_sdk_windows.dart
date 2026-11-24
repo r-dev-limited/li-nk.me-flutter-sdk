@@ -30,7 +30,6 @@ class FlutterLinkmeSdkWindows extends FlutterLinkmeSdkPlatform {
 
   static const _channel = MethodChannel('me.link/flutter_linkme_sdk_windows');
   static final _schemePattern = RegExp(r'^[a-z][a-z0-9+.-]{1,63}$');
-  static final _cidPattern = RegExp(r'^[0-9a-f]{32}$');
   static final _headerPattern = RegExp(r'^[!-~]+$');
   static const _timeout = Duration(seconds: 10);
   static const _rememberedCids = 256;
@@ -153,16 +152,18 @@ class FlutterLinkmeSdkWindows extends FlutterLinkmeSdkPlatform {
   }
 
   Future<LinkMePayload?> _claim(String raw) async {
-    final scheme = _requireConfig().scheme;
-    final prefix = '$scheme://open?cid=';
-    // Require an exact envelope, with one opaque CID and no route, browser URL,
-    // credentials, fragment or caller-provided navigation data.
-    if (!raw.startsWith(prefix) ||
-        raw.length != prefix.length + 32 ||
-        !_cidPattern.hasMatch(raw.substring(prefix.length))) {
+    final scheme = RegExp.escape(_requireConfig().scheme);
+    // Windows browsers can add a root slash when handing off a URI with
+    // an authority. Both spellings carry the same single opaque token.
+    final envelope = RegExp(
+      '^$scheme://open/?'
+      r'\?cid=([0-9a-f]{32})$',
+    );
+    final match = envelope.firstMatch(raw);
+    if (match == null || match.end != raw.length) {
       throw _error('invalid_activation');
     }
-    final cid = raw.substring(prefix.length);
+    final cid = match.group(1)!;
     if (_deliveredCids.contains(cid)) return null;
     final response = await _request(
       _base.replace(path: '/api/deeplink/windows-claim'),

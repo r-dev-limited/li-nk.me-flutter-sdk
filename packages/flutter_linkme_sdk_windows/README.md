@@ -69,11 +69,12 @@ Subsequent activations are delivered in order on `onLink` after `setReady()`
 and subscription. Up to 256 successful CIDs are remembered in process,
 including the cold-start CID. A repeat for the same CID is suppressed, while
 a new click can issue a new CID for the same link. No link is persisted on
-disk by the SDK. Reopening a browser page can retry an unsuccessful claim
+disk by the SDK. Clicking the same button again can retry an unsuccessful claim
 while the CID is valid.
 
 The only supported activation envelope is
-`<configured-scheme>://open?cid=<32 lowercase hex characters>`. The URI
+`<configured-scheme>://open?cid=<32 lowercase hex characters>`, with an optional
+root slash before the query as used by some Windows browsers. The URI
 supplies no navigation path or parameters. The SDK sends the CID in a JSON
 body to authenticated `POST /api/deeplink/windows-claim` on the configured
 origin, with redirects disabled. It accepts a matching, navigation-enabled

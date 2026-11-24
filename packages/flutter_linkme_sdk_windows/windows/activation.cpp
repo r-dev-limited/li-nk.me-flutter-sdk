@@ -30,7 +30,12 @@ std::optional<std::string> GetProtocolArgument() {
   if (!arguments) return std::nullopt;
   const std::wstring value = count == 2 ? arguments[1] : L"";
   LocalFree(arguments);
-  if (value.find(L"://") == std::wstring::npos) return std::nullopt;
+  const size_t colon = value.find(L':');
+  if (colon == std::wstring::npos || colon < 2 ||
+      value.find_first_not_of(L"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                              L"0123456789+.-", 0) < colon) {
+    return std::nullopt;
+  }
   if (value.size() > kMaxUriBytes) return std::string("invalid");
 
   const int length = static_cast<int>(value.size());
