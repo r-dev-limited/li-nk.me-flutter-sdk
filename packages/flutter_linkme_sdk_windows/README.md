@@ -7,6 +7,20 @@ and 0.3.x APIs. Flutter registers it on Windows only. Applications that pin
 the app-facing SDK to a path or Git source must resolve that same source
 through a root `dependency_overrides` entry.
 
+## Hosted package release checklist
+
+Phoenix plans to consume both LinkMe packages from pub.dev. Publish the
+Windows companion with its existing hosted `flutter_linkme_sdk` dependency
+and preserve `LinkMeWindowsConfig`, `LinkMeStartWindowsInstance`, and
+`LinkMeHasWindowsProtocolArgument`. A clean consumer should resolve both
+packages without a path override.
+
+Before publishing, enable publication for this package, validate the archive
+from this package directory, and build a Windows consumer against it. Exercise
+cold and warm protocol activation. For the app-facing SDK version used by
+Phoenix, also verify a clean macOS consumer registers the plugin
+through Flutter's Swift Package Manager integration.
+
 ## Configure the runner and installer
 
 In `windows/runner/main.cpp`, include
