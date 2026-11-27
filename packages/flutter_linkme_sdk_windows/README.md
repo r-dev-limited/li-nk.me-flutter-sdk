@@ -1,25 +1,35 @@
 # LinkMe for Windows
 
 This opt-in Flutter plugin implements LinkMe's existing Dart API for Windows.
-Add it as a direct dependency at an immutable Git revision and keep your
-existing `flutter_linkme_sdk` dependency. It supports the published 0.2.13
-and 0.3.x APIs. Flutter registers it on Windows only. Applications that pin
-the app-facing SDK to a path or Git source must resolve that same source
-through a root `dependency_overrides` entry.
+Add it alongside the app-facing SDK from pub.dev:
 
-## Hosted package release checklist
+```yaml
+dependencies:
+  flutter_linkme_sdk: ^0.3.4
+  flutter_linkme_sdk_windows: ^0.1.0
+```
 
-Phoenix plans to consume both LinkMe packages from pub.dev. Publish the
-Windows companion with its existing hosted `flutter_linkme_sdk` dependency
-and preserve `LinkMeWindowsConfig`, `LinkMeStartWindowsInstance`, and
-`LinkMeHasWindowsProtocolArgument`. A clean consumer should resolve both
-packages without a path override.
+The Windows package keeps `flutter_linkme_sdk` as a hosted dependency and
+supports the published 0.2.13 and 0.3.x APIs. Flutter registers it on Windows
+only. Apps that pin the app-facing SDK to a path or Git source must resolve
+that same source through a root `dependency_overrides` entry.
 
-Before publishing, enable publication for this package, validate the archive
-from this package directory, and build a Windows consumer against it. Exercise
-cold and warm protocol activation. For the app-facing SDK version used by
-Phoenix, also verify a clean macOS consumer registers the plugin
-through Flutter's Swift Package Manager integration.
+## Release verification
+
+The `Verify hosted Flutter consumers` workflow checks a fresh Windows consumer
+against the published Windows package and a fresh macOS consumer against the
+hosted app-facing SDK. Run it after publishing a package version and before
+updating downstream Git dependencies. The Windows runner also needs a real
+protocol activation check; the Phoenix DEV walkthrough recorded in PR #2594
+covered cold and warm activation, duplicate suppression, an unknown token,
+and browser fallback.
+
+The first `0.1.0` upload must be made manually from this directory with
+`dart pub publish`; pub.dev only permits automated GitHub Actions publishing
+for an existing package. Afterward, configure pub.dev automated publishing for
+`r-dev-limited/li-nk.me-flutter-sdk` with the tag pattern
+`flutter_linkme_sdk_windows-v{{version}}`. Future releases use matching tags,
+such as `flutter_linkme_sdk_windows-v0.1.1`.
 
 ## Configure the runner and installer
 

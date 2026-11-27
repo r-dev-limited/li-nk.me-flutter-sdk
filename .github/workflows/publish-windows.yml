@@ -1,0 +1,55 @@
+name: Publish Windows Flutter SDK
+
+on:
+  push:
+    tags:
+      - 'flutter_linkme_sdk_windows-v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  verify:
+    name: Validate package archive
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          flutter-version: '3.44.4'
+          channel: stable
+          cache: true
+      - name: Match tag and package versions
+        shell: bash
+        working-directory: packages/flutter_linkme_sdk_windows
+        run: |
+          set -euo pipefail
+          tag_version="${GITHUB_REF_NAME#flutter_linkme_sdk_windows-v}"
+          package_version="$(sed -n 's/^version: *//p' pubspec.yaml)"
+          test "$tag_version" = "$package_version"
+      - run: flutter pub get
+        working-directory: packages/flutter_linkme_sdk_windows
+      - run: flutter test
+        working-directory: packages/flutter_linkme_sdk_windows
+      - run: flutter analyze
+        working-directory: packages/flutter_linkme_sdk_windows
+      - run: dart pub publish --dry-run
+        working-directory: packages/flutter_linkme_sdk_windows
+
+  windows-consumer:
+    name: Build Windows consumer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          flutter-version: '3.44.4'
+          channel: stable
+          cache: true
+      - run: ./tool/verify_windows_consumer.ps1
+        shell: pwsh
+
+  publish:
+    needs: [verify, windows-consumer]
+    permissions:
+      id-token: write
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
+    with:
+      working-directory: packages/flutter_linkme_sdk_windows

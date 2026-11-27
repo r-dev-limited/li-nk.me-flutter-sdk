@@ -1,7 +1,7 @@
 name: flutter_linkme_sdk_windows
 description: Windows protocol activation and LinkMe click-token claims for Flutter.
 version: 0.1.0
-publish_to: none
+publish_to: https://pub.dev
 repository: https://github.com/r-dev-limited/li-nk.me-flutter-sdk
 
 environment:

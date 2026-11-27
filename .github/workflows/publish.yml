@@ -41,6 +41,8 @@ jobs:
           flutter-version: '3.44.4'
           channel: stable
           cache: true
+      - name: Enable Swift Package Manager
+        run: flutter config --enable-swift-package-manager
       - name: Stage package-name consumer
         shell: bash
         run: |
