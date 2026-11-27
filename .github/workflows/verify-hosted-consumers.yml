@@ -1,0 +1,180 @@
+name: Verify hosted Flutter consumers
+
+on:
+  workflow_dispatch:
+    inputs:
+      windows_sdk_version:
+        description: Published flutter_linkme_sdk_windows version
+        required: true
+        default: '0.1.0'
+      app_sdk_version:
+        description: Published flutter_linkme_sdk version
+        required: true
+        default: '0.3.4'
+
+jobs:
+  windows-consumer:
+    name: Clean hosted Windows consumer
+    runs-on: windows-latest
+    env:
+      WINDOWS_SDK_VERSION: ${{ inputs.windows_sdk_version }}
+      APP_SDK_VERSION: ${{ inputs.app_sdk_version }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          flutter-version: '3.44.4'
+          channel: stable
+          cache: true
+      - name: Create clean hosted consumer
+        shell: pwsh
+        run: |
+          if ($env:WINDOWS_SDK_VERSION -notmatch '^\d+\.\d+\.\d+$' -or
+              $env:APP_SDK_VERSION -notmatch '^\d+\.\d+\.\d+$') {
+            throw 'Package versions must be stable semantic versions.'
+          }
+          $consumer = Join-Path $env:RUNNER_TEMP 'linkme_hosted_windows_consumer'
+          flutter create --platforms=windows --project-name=linkme_hosted_windows_consumer --no-pub $consumer
+          Push-Location $consumer
+          try {
+            @"
+          name: linkme_hosted_windows_consumer
+          publish_to: none
+          environment:
+            sdk: ^3.12.0
+          dependencies:
+            flutter:
+              sdk: flutter
+            flutter_linkme_sdk: ^$env:APP_SDK_VERSION
+            flutter_linkme_sdk_windows: ^$env:WINDOWS_SDK_VERSION
+          "@ | Set-Content pubspec.yaml
+            @'
+          import 'package:flutter/widgets.dart';
+          import 'package:flutter_linkme_sdk/flutter_linkme_sdk.dart';
+          import 'package:flutter_linkme_sdk_windows/flutter_linkme_sdk_windows.dart';
+
+          Future<void> main() async {
+            WidgetsFlutterBinding.ensureInitialized();
+            final linkMe = LinkMe();
+            await linkMe.configure(const LinkMeWindowsConfig(
+              appId: 'fixture-app',
+              appKey: 'fixture-read-key',
+              scheme: 'linkme-hosted-ci',
+            ));
+            await linkMe.setReady();
+            runApp(const SizedBox.shrink());
+          }
+          '@ | Set-Content lib/main.dart
+            $runner = 'windows/runner/main.cpp'
+            $source = Get-Content $runner -Raw
+            $source = $source.Replace('#include "flutter_window.h"', @'
+          #include <flutter_linkme_sdk_windows/flutter_linkme_sdk_windows_plugin_c_api.h>
+
+          #include "flutter_window.h"
+          '@)
+            $source = $source.Replace('  // Attach to console', @'
+            switch (LinkMeStartWindowsInstance(L"LinkMe.Windows.Hosted.CI")) {
+              case kLinkMeForwarded:
+                return EXIT_SUCCESS;
+              case kLinkMeActivationFailed:
+                return EXIT_FAILURE;
+              case kLinkMePrimary:
+                break;
+            }
+            // Attach to console
+          '@)
+            $source = $source.Replace('  project.set_dart_entrypoint_arguments(std::move(command_line_arguments));', @'
+            if (!LinkMeHasWindowsProtocolArgument()) {
+              project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
+            }
+          '@)
+            Set-Content $runner $source
+          } finally {
+            Pop-Location
+          }
+      - name: Resolve from pub.dev without overrides
+        shell: pwsh
+        run: |
+          $consumer = Join-Path $env:RUNNER_TEMP 'linkme_hosted_windows_consumer'
+          Push-Location $consumer
+          try {
+            flutter pub get
+            $deps = flutter pub deps --json | ConvertFrom-Json
+            $expectedVersions = @{
+              flutter_linkme_sdk = $env:APP_SDK_VERSION
+              flutter_linkme_sdk_windows = $env:WINDOWS_SDK_VERSION
+            }
+            foreach ($expected in $expectedVersions.GetEnumerator()) {
+              $package = $deps.packages | Where-Object name -eq $expected.Key
+              if (!$package -or $package.source -ne 'hosted' -or $package.version -ne $expected.Value) {
+                throw "Expected hosted $($expected.Key) $($expected.Value); got $($package | ConvertTo-Json -Compress)"
+              }
+            }
+            flutter build windows --debug --no-pub
+          } finally {
+            Pop-Location
+          }
+
+  macos-consumer:
+    name: Clean hosted macOS SwiftPM consumer
+    runs-on: macos-26
+    env:
+      APP_SDK_VERSION: ${{ inputs.app_sdk_version }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          flutter-version: '3.44.4'
+          channel: stable
+          cache: true
+      - name: Enable Swift Package Manager
+        run: flutter config --enable-swift-package-manager
+      - name: Create clean hosted consumer
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$APP_SDK_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          consumer_root="$RUNNER_TEMP/linkme_hosted_macos_consumer"
+          flutter create --platforms=macos --project-name=linkme_hosted_macos_consumer --no-pub "$consumer_root"
+          cat > "$consumer_root/pubspec.yaml" <<EOF
+          name: linkme_hosted_macos_consumer
+          publish_to: none
+          environment:
+            sdk: ^3.12.0
+          dependencies:
+            flutter:
+              sdk: flutter
+            flutter_linkme_sdk: ^${APP_SDK_VERSION}
+          EOF
+          cat > "$consumer_root/lib/main.dart" <<'EOF'
+          import 'package:flutter/widgets.dart';
+          import 'package:flutter_linkme_sdk/flutter_linkme_sdk.dart';
+
+          Future<void> main() async {
+            WidgetsFlutterBinding.ensureInitialized();
+            final linkMe = LinkMe();
+            await linkMe.configure(const LinkMeConfig(appId: 'fixture-app'));
+            await linkMe.setReady();
+            runApp(const SizedBox.shrink());
+          }
+          EOF
+          echo "FLUTTER_CONSUMER_ROOT=$consumer_root" >> "$GITHUB_ENV"
+      - name: Resolve hosted app-facing SDK
+        working-directory: ${{ env.FLUTTER_CONSUMER_ROOT }}
+        run: |
+          flutter pub get
+          dart pub deps --json > deps.json
+          jq -e --arg version "$APP_SDK_VERSION" '.packages[] | select(.name == "flutter_linkme_sdk") | .source == "hosted" and .version == $version' deps.json
+      - name: Build macOS consumer through SwiftPM
+        working-directory: ${{ env.FLUTTER_CONSUMER_ROOT }}
+        run: flutter build macos --no-pub
+      - name: Run macOS plugin tests
+        working-directory: ${{ env.FLUTTER_CONSUMER_ROOT }}
+        run: >-
+          xcodebuild test
+          -workspace macos/Runner.xcworkspace
+          -scheme Runner
+          -configuration Debug
+          -destination 'platform=macOS'
+          -derivedDataPath $RUNNER_TEMP/flutter-hosted-macos-tests
+          CODE_SIGNING_ALLOWED=NO
