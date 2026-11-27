@@ -25,8 +25,9 @@ covered cold and warm activation, duplicate suppression, an unknown token,
 and browser fallback.
 
 The first `0.1.0` upload must be made manually from this directory with
-`dart pub publish`; pub.dev only permits automated GitHub Actions publishing
-for an existing package. Afterward, configure pub.dev automated publishing for
+`dart pub publish`. Pub.dev requires the first upload to be associated with a
+Google account, so transfer the new package to the verified `rdev.co.nz`
+publisher after it appears. Then configure pub.dev automated publishing for
 `r-dev-limited/li-nk.me-flutter-sdk` with the tag pattern
 `flutter_linkme_sdk_windows-v{{version}}`. Future releases use matching tags,
 such as `flutter_linkme_sdk_windows-v0.1.1`.
